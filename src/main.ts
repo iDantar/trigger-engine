@@ -44,7 +44,7 @@ Hooks.once("init", async () => {
     // we allow third party to register extra nodes for an application
     Hooks.callAll("triggerEngine.registerNodes", TriggerApplication.registerNodes.bind(TriggerApplication));
 
-    // we allow third party to register triggers for a registered application
+    // we allow third party to register triggers for an existing application
     Hooks.callAll("triggerEngine.registerTriggers", TriggerApplication.registerTriggers.bind(TriggerApplication));
 });
 
@@ -62,6 +62,9 @@ Hooks.once("ready", async () => {
     await TriggerApplication.prepareModulesTriggers();
     // we prepare all the applications once foundry is ready
     TriggerApplication.prepareApplications();
+
+    // we alert third party that everything is ready now
+    Hooks.callAll("triggerEngine.ready");
 });
 
 MODULE.apiExpose("openBlueprintMenu", TriggerApplication.openBlueprintMenu.bind(TriggerApplication));
