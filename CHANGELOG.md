@@ -1,3 +1,7 @@
+# 1.22.1
+
+- add new `triggerEngine.ready` which is called once all applications are ready
+
 # 1.22.0
 
 - rename `Scene Targets` value node into `Scene Tokens` to avoid confusion
