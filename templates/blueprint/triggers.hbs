@@ -64,7 +64,7 @@
                     {{#if trigger.invalid}}disabled{{else if (@root.isEnabled trigger)}}checked{{/if}}
                 >
                 {{#if trigger.invalid}}
-                <span class="name" {{{@root.i18n.tooltip 'invalid'}}}>{{trigger.label}}</a>
+                <span class="name" {{{@root.i18n.tooltip 'invalid'}}}>{{trigger.label}}</span>
                 {{else}}
                 <a class="name" data-action="select-trigger">{{trigger.label}}</a>
                 {{/if}}
