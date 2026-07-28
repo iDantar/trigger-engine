@@ -61,7 +61,7 @@ Hooks.once("ready", async () => {
     // we prepare the module triggers
     await TriggerApplication.prepareModulesTriggers();
     // we prepare all the applications once foundry is ready
-    TriggerApplication.prepareApplications();
+    await TriggerApplication.prepareApplications();
 
     // we alert third party that everything is ready now
     Hooks.callAll("triggerEngine.ready");

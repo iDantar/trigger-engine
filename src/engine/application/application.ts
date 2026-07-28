@@ -220,15 +220,13 @@ class TriggerApplication {
         return app?.openMenu(source, ...args);
     }
 
-    static async prepareModulesTriggers() {
+    static async prepareModulesTriggers(): Promise<void> {
         await Promise.all(this.#instances.map((application) => application.prepareModuleTriggers()));
         TriggerApplication.#moduleTriggersPrepared = true;
     }
 
-    static prepareApplications() {
-        for (const application of this.#instances) {
-            application.prepare();
-        }
+    static prepareApplications(): Promise<void[]> {
+        return Promise.all(this.#instances.map((application) => application.prepare()));
     }
 
     static async executeEvent(
@@ -332,6 +330,8 @@ class TriggerApplication {
     }
 
     async prepare() {
+        const startTime = performance.now();
+
         const setting = this.getTriggersSetting();
         if (!setting) return;
 
@@ -352,6 +352,8 @@ class TriggerApplication {
             R.uniqueBy((source) => source.id),
             R.map((source) => {
                 try {
+                    // const data = new TriggerData(source);
+                    // return !data.invalid && data;
                     const trigger = this.createTrigger(source);
                     return trigger && !trigger.invalid && trigger.data;
                 } catch (error) {}
@@ -424,6 +426,9 @@ class TriggerApplication {
             blueprint.resetTriggers();
             blueprint.draw({ forceComputeConnections: true, renderApplication: true });
         }
+
+        const endTime = performance.now();
+        MODULE.debug(`[${this.applicationKey}]`, endTime - startTime);
     }
 
     addFile(path: string) {
