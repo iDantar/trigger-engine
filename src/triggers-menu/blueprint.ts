@@ -179,20 +179,25 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         return this.#hasDeletedTriggers || this.triggers.some((trigger) => trigger.updated);
     }
 
-    resetTriggers(settings = this.parent.getTriggersSetting()) {
+    resetTriggers(): void;
+    resetTriggers(settings: TriggersSetting, removedTriggers: string[], updatedTriggers: string[]): void;
+    resetTriggers(
+        settings = this.parent.getTriggersSetting(),
+        removedTriggers: string[] = [],
+        updatedTriggers?: string[],
+    ) {
         const startTime = performance.now();
+        const isFirstReset = this.#triggers.size === 0;
 
         // we cache every updated trigger
-        const updated = new Map(
+        const currentlyUpdating = new Map(
             this.triggers.filter((trigger) => trigger.updated).map((trigger) => [trigger.id, trigger] as const),
         );
 
-        this.#invalids.clear();
-        this.#triggers.clear();
+        this.#modulesFolders = settings.folders;
+
         this.#disabledIds.clear();
         this.#enabledIds.clear();
-
-        this.#modulesFolders = settings.folders;
 
         for (const id of settings.disabled) {
             this.#disabledIds.add(id);
@@ -202,16 +207,21 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
             this.#enabledIds.add(id);
         }
 
+        // we delete triggers that were removed if not currently updating
+        for (const triggerId of removedTriggers) {
+            if (currentlyUpdating.has(triggerId)) continue;
+
+            const fullId = `world:${triggerId}` as const;
+
+            this.#invalids.delete(fullId);
+            this.#triggers.delete(fullId);
+        }
+
+        // we add or update (if not currently updating) triggers only if needed
         for (const source of settings.sources) {
             if (!R.isObjectType(source) || !R.isString(source.id)) continue;
-
-            // if that trigger is currently updated, we want to keep the non-saved data
-            const exist = updated.get(source.id);
-            if (exist) {
-                this.#triggers.set(exist.fullId, exist);
-                updated.delete(source.id);
-                continue;
-            }
+            if (updatedTriggers && !R.isIncludedIn(source.id, updatedTriggers)) continue;
+            if (currentlyUpdating.has(source.id)) continue;
 
             const trigger = this.application.createTrigger(source, { locked: false });
 
@@ -222,20 +232,18 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
             }
         }
 
-        // we add back triggers that were deleted but currently being updated
-        for (const [_, trigger] of updated) {
-            this.#triggers.set(trigger.fullId, trigger);
-        }
+        // we never have to re-instantiate module triggers
+        if (isFirstReset) {
+            for (const source of this.application.moduleSources) {
+                if (!R.isObjectType(source) || !R.isString(source.id)) continue;
 
-        for (const source of this.application.moduleSources) {
-            if (!R.isObjectType(source) || !R.isString(source.id)) continue;
+                const trigger = this.application.createTrigger(source, { locked: true });
 
-            const trigger = this.application.createTrigger(source, { locked: true });
-
-            if (trigger?.invalid) {
-                this.#invalids.set(trigger.fullId, trigger);
-            } else if (trigger) {
-                this.#triggers.set(trigger.fullId, trigger);
+                if (trigger?.invalid) {
+                    this.#invalids.set(trigger.fullId, trigger);
+                } else if (trigger) {
+                    this.#triggers.set(trigger.fullId, trigger);
+                }
             }
         }
 

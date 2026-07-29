@@ -27,7 +27,7 @@ import {
     TriggerVariableGetter,
     VARIABLE_CATEGORY,
 } from "engine";
-import { includesAny, localize, LocalizeArgs, LocalizeData, MODULE, R } from "foundry-helpers";
+import { arraysEqual, includesAny, localize, LocalizeArgs, LocalizeData, MODULE, R } from "foundry-helpers";
 import { ExecuteEventQueryOptions, ExecuteTriggerQueryOptions } from "queries";
 import { BlueprintApplication } from "triggers-menu";
 import utils = foundry.utils;
@@ -53,8 +53,10 @@ class TriggerApplication {
     #moduleId: string;
     #moduleSources: TriggerDataInput[] = [];
     #nodes: Collection<string, typeof TriggerNode>;
+    #rawSettings?: TriggersSetting;
     #settingsBlueprintApplication!: typeof BlueprintApplication;
     #triggerEvents: Record<string, { eventId: string; data: TriggerData }[]> = {};
+    #triggers: Record<string, TriggerData> = {};
 
     constructor(moduleId: string, applicationId: string, options: TriggerApplicationOptions = {}) {
         this.#mode = R.isIncludedIn(options.mode, APPLICATION_MODES) ? options.mode : "setting";
@@ -335,32 +337,45 @@ class TriggerApplication {
         const settings = this.getTriggersSetting();
         if (!settings) return;
 
-        const { disabled, enabled, sources } = settings;
+        const previous = this.#rawSettings ?? { disabled: [], enabled: [], folders: {}, sources: [] };
 
-        const filterSource = (source: unknown): source is TriggerDataInput => {
-            return R.isObjectType(source) && "id" in source;
-        };
+        // we remove triggers that are newly disabled or no longer enabled
+        const removedTriggers = [
+            ...diffStringArrays(settings.disabled, previous.disabled), // newly disabled
+            ...diffStringArrays(previous.enabled, settings.enabled), // previously enabled
+        ];
 
-        const worldSources = sources.filter((source) => filterSource(source) && !R.isIncludedIn(source.id, disabled));
-        const moduleSources = this.moduleSources.filter(
-            (source) => filterSource(source) && R.isIncludedIn(source.id, enabled),
-        );
+        this.#triggers = R.omit(this.#triggers, removedTriggers);
 
-        const triggers: TriggerData[] = R.pipe(
-            // world triggers should override module triggers
-            [...moduleSources, ...worldSources],
-            R.uniqueBy((source) => source.id),
-            R.map((source) => {
-                try {
-                    // const data = new TriggerData(source);
-                    // return !data.invalid && data;
-                    const trigger = this.createTrigger(source);
-                    return trigger && !trigger.invalid && trigger.data;
-                } catch (error) {}
-            }),
-            R.filter(R.isTruthy),
-            // we sort them by priority
-            R.sortBy([(trigger) => trigger.priority, "desc"]),
+        // we add or update triggers only if needed
+        const updatedTriggers: string[] = [];
+        const moduleSources = this.moduleSources.filter((source): source is WithRequired<TriggerDataInput, "id"> => {
+            return filterSource(source) && R.isIncludedIn(source.id, settings.enabled);
+        });
+        const worldSources = settings.sources.filter((source): source is WithRequired<TriggerDataInput, "id"> => {
+            return filterSource(source) && !R.isIncludedIn(source.id, settings.disabled);
+        });
+        const allSources = R.uniqueBy([...moduleSources, ...worldSources], R.prop("id"));
+        const allTriggerIds = allSources.map((source) => source.id);
+
+        for (const source of allSources) {
+            const exist = this.#triggers[source.id] as TriggerData | undefined;
+            if (exist && !diffTriggers(exist, source)) continue;
+
+            updatedTriggers.push(source.id);
+
+            try {
+                const trigger = this.createTrigger(source);
+                if (trigger && !trigger.invalid) {
+                    this.#triggers[source.id] = trigger.data;
+                }
+            } catch (error) {}
+        }
+
+        // we process
+        const triggers = R.pipe(
+            R.values(this.#triggers),
+            R.sortBy([R.prop("priority"), "desc"], (data) => allTriggerIds.indexOf(data.id)),
         );
 
         this.#triggerEvents = {};
@@ -427,9 +442,11 @@ class TriggerApplication {
         // we refresh the app on this client if it is opened
         const blueprint = this.getMenuApplication()?.blueprint;
         if (blueprint) {
-            blueprint.resetTriggers(settings);
+            blueprint.resetTriggers(settings, removedTriggers, updatedTriggers);
             blueprint.draw({ forceComputeConnections: true, renderApplication: true });
         }
+
+        this.#rawSettings = foundry.utils.deepClone(settings);
     }
 
     addFile(path: string) {
@@ -778,6 +795,34 @@ class TriggerApplication {
             type: this.#settingsBlueprintApplication,
         });
     }
+}
+
+function diffStringArrays(original: string[], against: string[]): string[] {
+    return original.filter((entry) => !R.isIncludedIn(entry, against));
+}
+
+function objectDifferentFrom(obj: object, against: object): boolean {
+    const diff = foundry.utils.diffObject(against, obj);
+    return !foundry.utils.isEmpty(diff);
+}
+
+function diffTriggers(data: TriggerData, source: TriggerDataInput): boolean {
+    for (const [property, value] of R.entries(data._source)) {
+        const newValue = source[property];
+
+        if (
+            (property === "tags" && (!R.isArray(newValue) || !arraysEqual(value, newValue))) ||
+            (property === "nodes" && (!R.isArray(newValue) || objectDifferentFrom(newValue, value))) ||
+            value !== newValue
+        )
+            return true;
+    }
+
+    return false;
+}
+
+function filterSource(source: unknown): source is WithRequired<TriggerDataInput, "id"> {
+    return R.isObjectType(source) && "id" in source;
 }
 
 function optionsHaveCustomSettings(
