@@ -137,6 +137,10 @@ function getTriggerPathData(triggerPath: TriggerPath): TriggerPathData {
     };
 }
 
+interface Trigger {
+    get nodes(): Collection<string, TriggerNode>;
+}
+
 type TriggerPath = `${ApplicationKey}:${string}`;
 
 type TriggerPathData = {

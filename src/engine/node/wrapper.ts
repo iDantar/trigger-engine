@@ -31,13 +31,17 @@ import {
     TriggerNodeCustomOutput,
 } from ".";
 
-function instantiateNode(parent: OpenTrigger, data: NodeData, open: true): OpenTriggerNode | undefined;
-function instantiateNode<TNode extends TriggerNode>(parent: Trigger, data: NodeData, open: boolean): TNode | undefined;
+function instantiateNode(parent: OpenTrigger, data: NodeData, open: true): OpenTriggerNode | undefined | false;
+function instantiateNode<TNode extends TriggerNode>(
+    parent: Trigger,
+    data: NodeData,
+    open: boolean,
+): TNode | undefined | false;
 function instantiateNode(
     parent: Trigger,
     nodeData: NodeData,
     open: boolean,
-): TriggerNode | OpenTriggerNode | undefined {
+): TriggerNode | OpenTriggerNode | undefined | false {
     const NodeCls = parent.application.nodes.get(nodeData.type) as typeof TriggerNode;
     if (!NodeCls) return;
 
@@ -57,7 +61,7 @@ function instantiateNode(
 
         return { node, schemas };
     })();
-    if (isGateEntry && !exitGate) return;
+    if (isGateEntry && !exitGate) return false;
 
     // we construct the variable schema
     const isVariableGetter = isVariableGetterNode(nodeData);
@@ -83,7 +87,7 @@ function instantiateNode(
             },
         ];
     })();
-    if (isVariableGetter && !variableSchemas) return;
+    if (isVariableGetter && !variableSchemas) return false;
 
     function rootLocalize(...args: LocalizeArgs): string | undefined {
         return parent.application.localize(...args);

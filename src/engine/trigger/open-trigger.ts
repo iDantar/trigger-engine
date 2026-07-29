@@ -19,6 +19,7 @@ import { mergeTwoWays, TwoWaysEntryId } from "triggers-menu";
 class OpenTrigger extends Trigger<OpenTriggerNode> {
     #computed: boolean = false;
     #computedConnections: Record<EntryId, boolean> = {};
+    #invalid: boolean = false;
     #linkedConnections: Set<TwoWaysEntryId> = new Set();
     #locked: boolean;
     #resolved: ResolvedTriggerNode[] = [];
@@ -41,12 +42,21 @@ class OpenTrigger extends Trigger<OpenTriggerNode> {
 
                 try {
                     const node = instantiateNode(this, nodeData, true);
-                    if (!node || node.invalid) continue;
+                    if (!node || node.invalid) {
+                        if (node !== false) {
+                            this.#invalid = true;
+                        }
+                        continue;
+                    }
 
                     this.nodes.set(node.id, node);
                 } catch (error) {}
             }
         }
+    }
+
+    get invalid(): boolean {
+        return this.#invalid;
     }
 
     get idPrefix(): "world" | "module" {
