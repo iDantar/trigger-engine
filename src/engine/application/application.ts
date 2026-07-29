@@ -414,11 +414,15 @@ class TriggerApplication {
         }
         MODULE.debug("TRIGGERS:", triggers);
         MODULE.debug("APPLICATION:", this);
-        console.groupEnd();
 
         if (this.#customSettings?.afterPrepared) {
             await this.#customSettings.afterPrepared(preparedSources);
         }
+
+        const endTime = performance.now();
+        MODULE.debug("PERFORMANCE (ms):", endTime - startTime);
+
+        MODULE.groupEnd();
 
         // we refresh the app on this client if it is opened
         const blueprint = this.getMenuApplication()?.blueprint;
@@ -426,9 +430,6 @@ class TriggerApplication {
             blueprint.resetTriggers();
             blueprint.draw({ forceComputeConnections: true, renderApplication: true });
         }
-
-        const endTime = performance.now();
-        MODULE.debug(`[${this.applicationKey}]`, endTime - startTime);
     }
 
     addFile(path: string) {

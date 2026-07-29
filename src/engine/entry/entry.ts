@@ -1,8 +1,120 @@
-import { BaseEntrySchemaOutput, ConnectionId, EntryCategory, NodeField, TriggerNode } from "engine";
+import {
+    BaseEntrySchemaInput,
+    BaseEntrySchemaOutput,
+    ConnectionId,
+    EntryCategory,
+    NodeData,
+    NodeField,
+    TriggerNode,
+} from "engine";
 import { LocalizeArgs, MODULE, R } from "foundry-helpers";
 
-// IMPORTANT an entry can never represent an array
+/**
+ * IMPORTANT an entry can never represent an array as the module always provides an array
+ * version of every connection type.
+ */
 class NodeEntry<TValue extends unknown = unknown, TFieldSchema extends Record<string, any> | undefined = undefined> {
+    /** @private You musn't use constructor in your child class */
+    constructor(
+        parent: TriggerNode,
+        category: EntryCategory,
+        nodeData: NodeData,
+        entrySchema: BaseEntrySchemaInput,
+        entryField: Record<string, any>,
+    ) {
+        // field
+        Object.defineProperty(this, "field", {
+            value: entryField,
+            configurable: false,
+            enumerable: false,
+            writable: false,
+        });
+
+        foundry.utils.deepFreeze(this.field as any);
+
+        // schema
+        Object.defineProperty(this, "schema", {
+            value: entrySchema,
+            configurable: false,
+            enumerable: false,
+            writable: false,
+        });
+
+        // category
+        Object.defineProperty(this, "category", {
+            value: category,
+            configurable: false,
+            enumerable: true,
+            writable: false,
+        });
+
+        // from data
+        Object.defineProperties(
+            this,
+            R.fromKeys(["connection", "value"] as const, (property) => {
+                return {
+                    get() {
+                        return category === "inputs" ? nodeData.inputs[entrySchema.key]?.[property] : undefined;
+                    },
+                    configurable: false,
+                    enumerable: true,
+                };
+            }),
+        );
+
+        // from schema accessors
+        Object.defineProperties(
+            this,
+            R.fromKeys(["input", "isArray", "key", "label", "slug", "tooltip"] as const, (property) => {
+                return {
+                    value: entrySchema[property],
+                    configurable: false,
+                    enumerable: true,
+                    writable: false,
+                };
+            }),
+        );
+
+        // from static accessors
+        Object.defineProperties(
+            this,
+            R.fromKeys(["type", "color"] as const, (property) => {
+                return {
+                    value: (this.constructor as typeof NodeEntry)[property],
+                    configurable: false,
+                    enumerable: true,
+                    writable: false,
+                };
+            }),
+        );
+
+        // from static methods
+        Object.defineProperties(
+            this,
+            R.fromKeys(["castValue", "fromJSON", "isValidType", "toJSON"] as const, (property) => {
+                return {
+                    value: (this.constructor as typeof NodeEntry)[property],
+                    configurable: false,
+                    enumerable: false,
+                    writable: false,
+                };
+            }),
+        );
+
+        // from private methods
+        Object.defineProperties(
+            this,
+            R.fromKeys(["localize", "rootLocalize"] as const, (property) => {
+                return {
+                    value: parent[property].bind(parent),
+                    configurable: false,
+                    enumerable: false,
+                    writable: false,
+                };
+            }),
+        );
+    }
+
     /**
      * @abstract
      * Must be an unique key among your registered module's entries (including the builtins)

@@ -4,14 +4,38 @@ import {
     CustomInputSchema,
     CustomOutputSchema,
     CustomOutSchema,
+    getInputsSchemas,
+    getNodeStates,
+    getOutputsSchemas,
+    getOutsSchemas,
     InputEntrySchemaSource,
+    instantiateEntry,
+    NodeBridge,
+    NodeData,
     NodeEntry,
     NodeField,
+    OpenNodeEntry,
+    OpenTrigger,
+    OutputEntrySchema,
     OutputEntrySchemaSource,
+    ResolvedNodeEntry,
+    ResolvedTriggerNode,
+    splitEntryId,
+    Trigger,
     TriggerPath,
     UserValue,
 } from "engine";
-import { LocalizeArgs, MODULE, ScenePF2e, TokenDocumentPF2e, TokenDocumentUUID } from "foundry-helpers";
+import {
+    FirstActiveTokenOptions,
+    getTargetsTokens,
+    getTargetToken,
+    LocalizeArgs,
+    MODULE,
+    R,
+    ScenePF2e,
+    TokenDocumentPF2e,
+    TokenDocumentUUID,
+} from "foundry-helpers";
 
 class TriggerNode<
     TOuts extends string | never = string,
@@ -21,6 +45,292 @@ class TriggerNode<
     TCustomOutputs extends string | never = string,
     TState extends string | never = string,
 > {
+    #in: NodeBridge | null;
+    #inputs: Collection<string, NodeEntry>;
+    #nextCalled: boolean = false;
+    #outputs: Collection<string, NodeEntry>;
+    #outputValues: Record<string, any> = {};
+    #outs: Collection<string, NodeBridge>;
+    #parent: Trigger;
+    #sceneId?: string;
+    #userId?: string;
+
+    /** @private You musn't use constructor in your child class */
+    constructor(
+        parent: Trigger,
+        nodeData: NodeData,
+        variableSchemas: OutputEntrySchema[] | undefined,
+        exitGate: { node: TriggerNode; schemas: OutputEntrySchema[] } | undefined,
+        open: boolean,
+    ) {
+        const self = this;
+        const SelfCls = this.constructor as typeof TriggerNode;
+
+        const isEvent = SelfCls.isEvent;
+
+        const nodeStates = getNodeStates(SelfCls);
+        const nodeState = !nodeStates
+            ? null
+            : R.isString(nodeData.state) && R.isIncludedIn(nodeData.state, nodeStates)
+              ? nodeData.state
+              : nodeStates[0];
+
+        // scene context
+        Object.defineProperty(this, "sceneContext", {
+            get(): Scene | undefined {
+                return (self.#sceneId && game.scenes.get(self.#sceneId)) || parent.sceneContext;
+            },
+            set(sceneOrToken: Maybe<Scene | TokenDocument>) {
+                const scene = sceneOrToken instanceof TokenDocument ? sceneOrToken.parent : sceneOrToken;
+
+                if (scene) {
+                    self.#sceneId = scene.id;
+                    parent.sceneContext = scene as ScenePF2e;
+                }
+            },
+            configurable: false,
+            enumerable: true,
+        });
+
+        // user context
+        Object.defineProperty(this, "userContext", {
+            get(): User {
+                return (self.#userId && game.users.get(self.#userId)) || parent.userContext;
+            },
+            set(user: User) {
+                self.#userId = user.id;
+                parent.userContext = user;
+            },
+            configurable: false,
+            enumerable: true,
+        });
+
+        // from data accessors
+        Object.defineProperties(
+            this,
+            R.fromKeys(["id", "invalid"] as const, (property) => {
+                return {
+                    value: nodeData[property],
+                    configurable: false,
+                    enumerable: true,
+                    writable: false,
+                };
+            }),
+        );
+
+        // from private methods
+        Object.defineProperties(
+            this,
+            R.pipe(
+                [
+                    ["executeNext", this.#executeNext],
+                    ["getCustomInputs", this.#getCustomInputs],
+                    ["getCustomInputsValues", this.#getCustomInputsValues],
+                    ["getInputValue", this.#getInputValue],
+                    ["getLocalValue", this.#getLocalValue],
+                    ["getCustomOutKey", this.#getCustomOutKey],
+                    ["getCustomOutputs", this.#getCustomOutputs],
+                    ["getOutputValue", this.#getOutputValue],
+                    ["getTargetToken", this.#getTargetToken],
+                    ["getTargetsTokens", this.#getTargetsTokens],
+                    ["localize", this.#localize],
+                    ["rootLocalize", this.#rootLocalize],
+                    ["setCustomOutputValues", this.#setCustomOutputValues],
+                    ["setOutputValue", this.#setOutputValue],
+                ] as const,
+                R.fromEntries(),
+                R.mapValues((method) => {
+                    return {
+                        value: method.bind(this),
+                        configurable: false,
+                        enumerable: false,
+                        writable: false,
+                    };
+                }),
+            ),
+        );
+
+        // from static accessors
+        Object.defineProperties(
+            this,
+            R.fromKeys(["isEvent", "type", "category"] as const, (property) => {
+                return {
+                    value: SelfCls[property],
+                    configurable: false,
+                    enumerable: true,
+                    writable: false,
+                };
+            }),
+        );
+
+        // from trigger
+        Object.defineProperties(
+            this,
+            R.fromKeys(["getContext", "setContext"] as const, (property) => {
+                return {
+                    value: parent[property].bind(parent),
+                    configurable: false,
+                    enumerable: false,
+                    writable: false,
+                };
+            }),
+        );
+
+        // from application
+        Object.defineProperties(
+            this,
+            R.fromKeys(
+                [
+                    "convertFromEmitable",
+                    "convertObjectFromEmitable",
+                    "convertObjectToEmitable",
+                    "convertToEmitable",
+                    "convertValueFromEmitable",
+                    "convertValuesFomEmitable",
+                    "convertValuesToEmitable",
+                    "convertValueToEmitable",
+                    "parseUserValue",
+                    "parseUserValues",
+                ] as const,
+                (property) => {
+                    return {
+                        value: parent.application[property].bind(parent.application),
+                        configurable: false,
+                        enumerable: false,
+                        writable: false,
+                    };
+                },
+            ),
+        );
+
+        // bridges
+        const [ins, outs] = R.map(
+            [
+                [
+                    "inputs",
+                    !isEvent && SelfCls.hasIn ? [{ key: "in", spacing: 0, state: undefined, tooltip: false }] : [],
+                ],
+                ["outputs", getOutsSchemas(SelfCls, { data: nodeData, state: nodeState })],
+            ] as const,
+            ([category, schemas]) => {
+                return R.pipe(
+                    schemas,
+                    R.map((schema) => {
+                        try {
+                            const bridge = new NodeBridge(this, category, nodeData, schema);
+                            return [bridge.key, bridge] as const;
+                        } catch (error) {}
+                    }),
+                    R.filter(R.isTruthy),
+                );
+            },
+        );
+
+        // entries
+        const [inputs, outputs] = R.map(
+            [
+                [
+                    "inputs",
+                    variableSchemas ?? // unique schema for variables
+                        exitGate?.schemas ?? // we use the exit output schemas
+                        getInputsSchemas(SelfCls, { data: nodeData, state: nodeState }),
+                ],
+                [
+                    "outputs",
+                    variableSchemas ?? // unique schema for variables
+                        getOutputsSchemas(SelfCls, { data: nodeData, state: nodeState }),
+                ],
+            ] as const,
+            ([category, schemas]) => {
+                const entries = R.pipe(
+                    schemas,
+                    R.map((schema) => {
+                        try {
+                            const entry = instantiateEntry(parent, this, category, schema, nodeData, open);
+
+                            return entry ? ([entry.key, entry] as const) : undefined;
+                        } catch (error: any) {
+                            MODULE.error("an error occurred while instantiating a node entry", error);
+                        }
+                    }),
+                    R.filter(R.isTruthy),
+                );
+
+                return new Collection(entries);
+            },
+        );
+
+        // some properties
+        Object.defineProperties(
+            this,
+            R.pipe(
+                [
+                    ["nodePath", `${parent.path}:${this.id}`],
+                    ["state", nodeState],
+                    ["triggerName", parent.name || parent.id],
+                    ["triggerPath", parent.path],
+                ] as const,
+                R.fromEntries(),
+                R.mapValues((value) => {
+                    return {
+                        value,
+                        configurable: false,
+                        enumerable: true,
+                        writable: false,
+                    };
+                }),
+            ),
+        );
+
+        this.#parent = parent;
+        this.#in = ins.at(0)?.[1] || null;
+        this.#outs = new Collection(outs);
+        this.#inputs = inputs;
+        this.#outputs = outputs;
+
+        if (open) {
+            Object.defineProperties(this, {
+                data: {
+                    value: nodeData,
+                },
+                entries: {
+                    value: {
+                        in: this.#in,
+                        outs: this.#outs,
+                        inputs: inputs as Collection<string, OpenNodeEntry>,
+                        outputs: outputs as Collection<string, OpenNodeEntry>,
+                    } satisfies NodeEntries,
+                },
+                exitGate: {
+                    value: exitGate?.node,
+                },
+                parent: {
+                    value: parent,
+                },
+                states: {
+                    value: nodeStates,
+                },
+                tags: {
+                    value: SelfCls.tags,
+                },
+            });
+        }
+
+        if (parent.application.isFreeApplication) {
+            const _execute = this._execute.bind(this);
+
+            this._execute = async (...args: any[]): Promise<boolean> => {
+                const result = await _execute(...args);
+
+                if (!this.#nextCalled) {
+                    await this.#resolve();
+                }
+
+                return result;
+            };
+        }
+    }
+
     /**
      * @abstract
      * Must be an unique key among your registered module's nodes (including builtins)
@@ -265,6 +575,206 @@ class TriggerNode<
     _query(key: string): Promise<any> {
         throw MODULE.Error("'_query' method not implemented.");
     }
+
+    /**
+     * Private Stuff below, this is not for you to worry about
+     */
+
+    get #isExecutable(): boolean {
+        return !!this.#in || this.#outs.size > 0;
+    }
+
+    async #resolve() {
+        const trigger = this.#parent as OpenTrigger;
+
+        const inputs: ResolvedNodeEntry[] = await Promise.all(
+            this.#inputs.map(async ({ key, slug, type }): Promise<ResolvedNodeEntry> => {
+                return {
+                    key: slug ?? key,
+                    type,
+                    value: await this.getInputValue(key),
+                };
+            }),
+        );
+
+        const outputs = await Promise.all(
+            this.#outputs.map(async ({ key, slug, type }): Promise<ResolvedNodeEntry> => {
+                return {
+                    key: slug ?? key,
+                    type,
+                    value: await this.#outputValues[key],
+                };
+            }),
+        );
+
+        trigger.addResolvedNode({ inputs, outputs, type: this.type } satisfies ResolvedTriggerNode);
+    }
+
+    async #executeNext(out: string, ...args: any[]): Promise<boolean> {
+        if (!this.#isExecutable) return true;
+
+        if (this.#parent.application.isFreeApplication) {
+            this.#nextCalled = true;
+            await this.#resolve();
+        }
+
+        try {
+            const connection = this.#outs.get(out)?.connection;
+            if (!connection) return true;
+
+            const node = this.#parent.getNodeFromEntryId(connection);
+            if (!node) return true;
+
+            // we set the trigger context to the node's whenever it is executed
+            this.#parent.userContext = node.userContext;
+            return node._execute(...args);
+        } catch (error: any) {
+            MODULE.error(`an error occurred while executing the node: ${this.nodePath}`, error);
+            return true;
+        }
+    }
+
+    #getCustomOutKey(slug: string, input: string | number): string | undefined {
+        return this.#outs.find((out) => out.slug === slug && out.input === input)?.key;
+    }
+
+    #getCustomOutputs(slug: string): TriggerNodeCustomOutput[] {
+        return this.#outputs
+            .filter((output) => output.slug === slug)
+            .map(({ input, key, type }): TriggerNodeCustomOutput => {
+                return { input, key, type };
+            });
+    }
+
+    #getLocalValue(key: string): any {
+        const input = this.#inputs.get(key);
+        if (!input) return;
+
+        const value = input?.value;
+        return R.isNonNullish(value) && input.isValidType(value) ? input.processValue(value) : input.default;
+    }
+
+    async #getInputValue(key: string): Promise<any> {
+        const input = this.#inputs.get(key);
+        if (!input) return;
+
+        const returnValue = (rawValue: any): any => {
+            if (input.isArray) {
+                return R.pipe(
+                    R.isArray(rawValue) ? rawValue : [rawValue],
+                    R.filter(input.isValidType.bind(input)),
+                    R.map(input.processValue.bind(input)),
+                );
+            } else {
+                const value = R.isArray(rawValue) ? rawValue[0] : rawValue;
+                return input.isValidType(value) ? input.processValue(value) : input.default;
+            }
+        };
+
+        if (input.connection) {
+            const [nodeId, _, otherKey] = splitEntryId(input.connection);
+            const otherNode = this.#parent.getNode(nodeId);
+
+            if (!otherNode) {
+                return input.default;
+            }
+
+            const value = await otherNode.getOutputValue(otherKey, input);
+            return returnValue(value);
+        } else {
+            return returnValue(input.value);
+        }
+    }
+
+    #getCustomInputs(slug: string): Promise<{ label: string; value: any }[]> {
+        const results = this.#inputs
+            .filter((input) => input.slug === slug)
+            .map(async ({ key, label, type }): Promise<{ label: string; value: any; type: string }> => {
+                return {
+                    label: label ?? "",
+                    value: await this.getInputValue(key),
+                    type,
+                };
+            });
+
+        return Promise.all(results);
+    }
+
+    #getCustomInputsValues(slug: string): Promise<any[]> {
+        const results = this.#inputs
+            .filter((input) => input.slug === slug)
+            .map(async ({ key }) => this.getInputValue(key));
+
+        return Promise.all(results);
+    }
+
+    async #getOutputValue(key: string, input: NodeEntry): Promise<any> {
+        const output = this.#outputs.get(key);
+        if (!output) return;
+
+        const value = await (this.#isExecutable ? this.#outputValues[key] : this._query(key));
+
+        if (output.type === input.type) {
+            return value;
+        }
+
+        const convertor = this.#parent.application.getConvertor(output.type, input.type);
+        if (!convertor) return;
+
+        const userContext = this.userContext;
+        const convertToInput = (value: any) => convertor.convertToInput(value, userContext);
+
+        return R.isArray(value)
+            ? await Promise.all(value.filter((x) => output.isValidType(x)).map(convertToInput))
+            : output.isValidType(value)
+              ? await convertToInput(value)
+              : undefined;
+    }
+
+    #setOutputValue(key: string, value: any) {
+        const output = this.#outputs.get(key);
+        if (output) {
+            this.#castAndSetOutputValue(output, value);
+        }
+    }
+
+    #setCustomOutputValues(slug: string, values: any[]) {
+        const outputs = this.#outputs.filter((output) => output.slug === slug);
+
+        for (let i = 0; i < outputs.length; i++) {
+            const output = outputs[i];
+            this.#castAndSetOutputValue(output, values[i]);
+        }
+    }
+
+    #castAndSetOutputValue(output: NodeEntry, value: any) {
+        if (output.isArray) {
+            this.#outputValues[output.key] = R.pipe(
+                R.isArray(value) ? value : [value],
+                R.map(output.castValue.bind(output)),
+            );
+        } else {
+            value = R.isArray(value) ? value[0] : value;
+            this.#outputValues[output.key] = output.castValue(value);
+        }
+    }
+
+    #getTargetToken(target: Maybe<TargetDocuments>, options?: FirstActiveTokenOptions): TokenDocument | undefined {
+        return getTargetToken(target, options);
+    }
+
+    #getTargetsTokens(targets: TargetDocuments[], uuid?: boolean, options?: FirstActiveTokenOptions): TokenDocument[] {
+        return getTargetsTokens(targets, uuid, options);
+    }
+
+    #rootLocalize(...args: LocalizeArgs): string | undefined {
+        return this.#parent.application.localize(...args);
+    }
+
+    #localize(...args: LocalizeArgs): string | undefined {
+        const SelfCls = this.constructor as typeof TriggerNode;
+        return this.#rootLocalize("node", SelfCls.category, SelfCls.type, ...args);
+    }
 }
 
 interface TriggerNode<
@@ -396,10 +906,11 @@ interface TriggerNode<
      */
     getInputValue<K extends keyof TInputs>(input: K): Promise<TInputs[K]>;
 
-    /**
-     * Retrieve the local value of this node's input.
-     */
+    /** Retrieve the local value of this node's input. */
     getLocalValue<K extends keyof TInputs>(input: K): TInputs[K];
+
+    /** Query the value of a connected output */
+    getOutputValue(key: string, input: NodeEntry): Promise<any>;
 
     /**
      * If the 'target' entry doesn't have a declare 'token', then the function
@@ -488,6 +999,13 @@ type TriggerNodeCustomOutput = {
     input: string | number | undefined;
     key: string;
     type: string;
+};
+
+type NodeEntries = {
+    in: NodeBridge | null;
+    inputs: Collection<string, OpenNodeEntry>;
+    outputs: Collection<string, OpenNodeEntry>;
+    outs: Collection<string, NodeBridge>;
 };
 
 export { TriggerNode };

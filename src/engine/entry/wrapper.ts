@@ -10,8 +10,21 @@ import {
     Trigger,
     TriggerNode,
 } from "engine";
-import { LocalizeArgs, R, z } from "foundry-helpers";
+import { R, z } from "foundry-helpers";
 import { EntryCategory } from "triggers-menu";
+
+const _cachedFields = new Map<string, z.ZodType>();
+
+function getFieldSchema(EntryCls: typeof NodeEntry): z.ZodType {
+    const exist = _cachedFields.get(EntryCls.type);
+    if (exist) return exist;
+
+    const jsonSchema = EntryCls.FieldClass?.defineSchema;
+    const fieldSchema = z.fromJSONSchema({ type: "object", properties: jsonSchema });
+
+    _cachedFields.set(EntryCls.type, fieldSchema);
+    return fieldSchema;
+}
 
 function instantiateEntry(
     trigger: OpenTrigger,
@@ -35,9 +48,8 @@ function instantiateEntry(
     category: EntryCategory,
     entrySchema: BaseEntrySchemaInput,
     nodeData: NodeData,
-    open: boolean,
 ): NodeEntry | OpenNodeEntry | undefined {
-    const EntryCls = trigger.application.entries.get(entrySchema.type) as typeof NodeEntry;
+    let EntryCls = trigger.application.entries.get(entrySchema.type) as typeof NodeEntry;
     if (!EntryCls) return;
 
     let entryField: Record<string, any> = {};
@@ -56,10 +68,7 @@ function instantiateEntry(
 
             const jsonSchema = EntryCls.FieldClass?.defineSchema;
             if (jsonSchema) {
-                const fieldSchema = z.fromJSONSchema({
-                    type: "object",
-                    properties: jsonSchema,
-                });
+                const fieldSchema = getFieldSchema(EntryCls);
                 const data = "field" in entrySchema && R.isPlainObject(entrySchema.field) ? entrySchema.field : {};
 
                 entryField = zForceSafeParse(fieldSchema, data) as any;
@@ -67,121 +76,7 @@ function instantiateEntry(
         } catch (error) {}
     }
 
-    function localize(...args: LocalizeArgs): string | undefined {
-        return parent.localize(...args);
-    }
-
-    function rootLocalize(...args: LocalizeArgs): string | undefined {
-        return parent.rootLocalize(...args);
-    }
-
-    class NodeEntryWrapper extends EntryCls {
-        constructor() {
-            super();
-
-            // field
-            Object.defineProperty(this, "field", {
-                value: entryField,
-                configurable: false,
-                enumerable: false,
-                writable: false,
-            });
-
-            foundry.utils.deepFreeze(this.field as any);
-
-            Object.defineProperty(this, "category", {
-                value: category,
-                configurable: false,
-                enumerable: true,
-                writable: false,
-            });
-
-            // from data
-            Object.defineProperties(
-                this,
-                R.fromKeys(["connection", "value"] as const, (property) => {
-                    return {
-                        get() {
-                            return category === "inputs" ? nodeData.inputs[entrySchema.key]?.[property] : undefined;
-                        },
-                        configurable: false,
-                        enumerable: true,
-                    };
-                }),
-            );
-
-            // from schema accessors
-            Object.defineProperties(
-                this,
-                R.fromKeys(["input", "isArray", "key", "label", "slug", "tooltip"] as const, (property) => {
-                    return {
-                        value: entrySchema[property],
-                        configurable: false,
-                        enumerable: true,
-                        writable: false,
-                    };
-                }),
-            );
-
-            // from static accessors
-            Object.defineProperties(
-                this,
-                R.fromKeys(["type", "color"] as const, (property) => {
-                    return {
-                        value: EntryCls[property],
-                        configurable: false,
-                        enumerable: true,
-                        writable: false,
-                    };
-                }),
-            );
-
-            // from static methods
-            Object.defineProperties(
-                this,
-                R.fromKeys(["castValue", "fromJSON", "isValidType", "toJSON"] as const, (property) => {
-                    return {
-                        value: EntryCls[property],
-                        configurable: false,
-                        enumerable: false,
-                        writable: false,
-                    };
-                }),
-            );
-
-            // from private methods
-            Object.defineProperties(
-                this,
-                R.pipe(
-                    [
-                        ["localize", localize],
-                        ["rootLocalize", rootLocalize],
-                    ] as const,
-                    R.fromEntries(),
-                    R.mapValues((method) => {
-                        return {
-                            value: method.bind(this),
-                            configurable: false,
-                            enumerable: false,
-                            writable: false,
-                        };
-                    }),
-                ),
-            );
-
-            if (open) {
-                Object.defineProperties(this, {
-                    schema: {
-                        get() {
-                            return entrySchema;
-                        },
-                    },
-                });
-            }
-        }
-    }
-
-    return new NodeEntryWrapper();
+    return new EntryCls(parent, category, nodeData, entrySchema, entryField);
 }
 
 interface OpenNodeEntry extends NodeEntry {

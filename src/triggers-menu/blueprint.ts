@@ -180,6 +180,8 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
     }
 
     resetTriggers() {
+        const startTime = performance.now();
+
         // we cache every updated trigger
         const updated = new Map(
             this.triggers.filter((trigger) => trigger.updated).map((trigger) => [trigger.id, trigger] as const),
@@ -238,6 +240,9 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
                 this.#triggers.set(trigger.fullId, trigger);
             }
         }
+
+        const endTime = performance.now();
+        MODULE.debug("Blueprint triggers (ms)", endTime - startTime);
     }
 
     toggleLocked(locked: boolean) {

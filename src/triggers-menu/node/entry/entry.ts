@@ -1,12 +1,4 @@
-import {
-    ConnectionId,
-    instantiateField,
-    isVariableGetterNode,
-    NodeEntry,
-    NodeField,
-    OpenNodeEntry,
-    TriggerVariable,
-} from "engine";
+import { ConnectionId, isVariableGetterNode, NodeEntry, NodeField, OpenNodeEntry, TriggerVariable } from "engine";
 import { confirmDialog, ContextMenuEntry, localize } from "foundry-helpers";
 import { editLabelDialog } from "triggers-menu";
 import { BaseBlueprintEntry } from ".";
@@ -136,7 +128,7 @@ class BlueprintEntry extends BaseBlueprintEntry<OpenNodeEntry> {
             value: processValue(rawValue),
         };
 
-        const fieldElement = instantiateField(FieldCls, entry, node, options);
+        const fieldElement = new FieldCls(node, entry, options);
         fieldElement.draw();
 
         if (isConnected || !this.canConnect) {

@@ -20,6 +20,33 @@ import {
 } from "engine";
 import { R, z } from "foundry-helpers";
 
+const _cached = {
+    inputs: new Map<`${string}:${string}`, InputEntrySchema[]>(),
+    outputs: new Map<`${string}:${string}`, OutputEntrySchema[]>(),
+    outs: new Map<`${string}:${string}`, BridgeSchemaOutput[]>(),
+};
+
+type CachedType = keyof typeof _cached;
+type CachedValue<T extends CachedType> = (typeof _cached)[T] extends Map<`${string}:${string}`, infer v> ? v : never;
+
+function parseSchemasByState<T extends keyof typeof _cached>(
+    type: T,
+    NodeCls: typeof TriggerNode,
+    schemas: (BaseEntrySchemaInput | BridgeSchemaInput)[],
+    parser: z.ZodObject,
+    options: SchemasFilterOptions = {},
+): CachedValue<T> {
+    const key = `${NodeCls.type}:${options.state ?? ""}` as const;
+    const exist = _cached[type].get(key) as CachedValue<T> | undefined;
+    if (exist) return exist;
+
+    const filtered = filterSchemasByState(schemas, options);
+    const parsed = parseSchemas(filtered, parser);
+
+    _cached[type].set(key, parsed);
+    return parsed;
+}
+
 function filterSchemasByState<T extends { state?: string | string[] }>(
     schemas: T[],
     { state }: { state?: string | null } = {},
@@ -78,32 +105,32 @@ function filterByCustomSchemas<
 }
 
 function getOutsSchemas(NodeCls: typeof TriggerNode, options?: SchemasFilterOptions): BridgeSchemaOutput[] {
+    const parser = zNodeBridgeSchema;
     const schemas = NodeCls.isEvent ? [{ key: "out" }] : (NodeCls.defineOuts ?? []);
-    const filtered = filterSchemasByState(schemas, options);
+    const parsed = parseSchemasByState("outs", NodeCls, schemas, parser, options);
+    if (!options?.data) return parsed;
 
-    if (options?.data) {
-        filtered.push(
-            ...filterByCustomSchemas(
-                NodeCls.defineCustomOuts,
-                zCustomOutSchema,
-                options.data.custom.outs,
-                (_, entry): BridgeSchemaOutput => {
-                    return {
-                        input: entry.input,
-                        key: entry.id,
-                        label: entry.label,
-                        slug: entry.slug,
-                        spacing: 0,
-                    };
-                },
-            ),
-        );
-    }
+    const filtered = filterByCustomSchemas(
+        NodeCls.defineCustomOuts,
+        zCustomOutSchema,
+        options.data.custom.outs,
+        (_, entry): Omit<BridgeSchemaOutput, "tooltip"> => {
+            return {
+                input: entry.input,
+                key: entry.id,
+                label: entry.label,
+                slug: entry.slug,
+                spacing: 0,
+            };
+        },
+    );
 
-    return parseSchemas(filtered, zNodeBridgeSchema);
+    return [...parsed, ...parseSchemas(filtered, parser)];
 }
 
 function getEntrySchemas(
+    type: "inputs" | "outputs",
+    NodeCls: typeof TriggerNode,
     schemas: BaseEntrySchemaInput[] | null,
     parser: z.ZodObject,
     options: SchemasFilterOptions = {},
@@ -113,30 +140,27 @@ function getEntrySchemas(
         schemaParser: typeof zBaseEntrySchema;
     },
 ) {
-    const filtered = filterSchemasByState(schemas ?? [], options);
+    const parsed = parseSchemasByState(type, NodeCls, schemas ?? [], parser, options);
+    if (!options?.data) return parsed;
 
-    if (options?.data) {
-        filtered.push(
-            ...filterByCustomSchemas(custom.rawSchemas, custom.schemaParser, custom.entries, (schema, entry) => {
-                return {
-                    field: (schema as CustomInputSchema).field,
-                    group: schema.group,
-                    input: entry.input,
-                    isArray: entry.isArray,
-                    key: entry.id,
-                    label: entry.label,
-                    slug: entry.slug,
-                    type: entry.type,
-                } as any;
-            }),
-        );
-    }
+    const filtered = filterByCustomSchemas(custom.rawSchemas, custom.schemaParser, custom.entries, (schema, entry) => {
+        return {
+            field: (schema as CustomInputSchema).field,
+            group: schema.group,
+            input: entry.input,
+            isArray: entry.isArray,
+            key: entry.id,
+            label: entry.label,
+            slug: entry.slug,
+            type: entry.type,
+        } as any;
+    });
 
-    return parseSchemas(filtered, parser);
+    return [...parsed, ...parseSchemas(filtered, parser)];
 }
 
 function getInputsSchemas(NodeCls: typeof TriggerNode, options?: SchemasFilterOptions): InputEntrySchema[] {
-    return getEntrySchemas(NodeCls.defineInputs, zNodeInputSchema, options, {
+    return getEntrySchemas("inputs", NodeCls, NodeCls.defineInputs, zNodeInputSchema, options, {
         entries: options?.data?.custom.inputs,
         rawSchemas: NodeCls.defineCustomInputs,
         schemaParser: zCustomInputSchema,
@@ -144,7 +168,7 @@ function getInputsSchemas(NodeCls: typeof TriggerNode, options?: SchemasFilterOp
 }
 
 function getOutputsSchemas(NodeCls: typeof TriggerNode, options?: SchemasFilterOptions): OutputEntrySchema[] {
-    return getEntrySchemas(NodeCls.defineOutputs, zNodeOutputSchema, options, {
+    return getEntrySchemas("outputs", NodeCls, NodeCls.defineOutputs, zNodeOutputSchema, options, {
         entries: options?.data?.custom.outputs,
         rawSchemas: NodeCls.defineCustomOutputs,
         schemaParser: zCustomOutputSchema,

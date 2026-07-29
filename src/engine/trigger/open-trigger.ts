@@ -43,6 +43,7 @@ class OpenTrigger extends Trigger<OpenTriggerNode> {
                 try {
                     const node = instantiateNode(this, nodeData, true);
                     if (!node || node.invalid) {
+                        // only invalid if undefined or actually invalid
                         if (node !== false) {
                             this.#invalid = true;
                         }
