@@ -332,10 +332,10 @@ class TriggerApplication {
     async prepare() {
         const startTime = performance.now();
 
-        const setting = this.getTriggersSetting();
-        if (!setting) return;
+        const settings = this.getTriggersSetting();
+        if (!settings) return;
 
-        const { disabled, enabled, sources } = setting;
+        const { disabled, enabled, sources } = settings;
 
         const filterSource = (source: unknown): source is TriggerDataInput => {
             return R.isObjectType(source) && "id" in source;
@@ -427,7 +427,7 @@ class TriggerApplication {
         // we refresh the app on this client if it is opened
         const blueprint = this.getMenuApplication()?.blueprint;
         if (blueprint) {
-            blueprint.resetTriggers();
+            blueprint.resetTriggers(settings);
             blueprint.draw({ forceComputeConnections: true, renderApplication: true });
         }
     }

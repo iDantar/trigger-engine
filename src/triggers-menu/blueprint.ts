@@ -179,7 +179,7 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         return this.#hasDeletedTriggers || this.triggers.some((trigger) => trigger.updated);
     }
 
-    resetTriggers() {
+    resetTriggers(settings = this.parent.getTriggersSetting()) {
         const startTime = performance.now();
 
         // we cache every updated trigger
@@ -192,19 +192,17 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         this.#disabledIds.clear();
         this.#enabledIds.clear();
 
-        const triggersSetting = this.parent.getTriggersSetting();
+        this.#modulesFolders = settings.folders;
 
-        this.#modulesFolders = triggersSetting.folders;
-
-        for (const id of triggersSetting.disabled) {
+        for (const id of settings.disabled) {
             this.#disabledIds.add(id);
         }
 
-        for (const id of triggersSetting.enabled) {
+        for (const id of settings.enabled) {
             this.#enabledIds.add(id);
         }
 
-        for (const source of triggersSetting.sources) {
+        for (const source of settings.sources) {
             if (!R.isObjectType(source) || !R.isString(source.id)) continue;
 
             // if that trigger is currently updated, we want to keep the non-saved data
