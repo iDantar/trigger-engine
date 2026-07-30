@@ -13,6 +13,7 @@ import {
     instantiateHook,
     NodeEntry,
     OpenTrigger,
+    START_EVENT_TYPE,
     Trigger,
     TriggerApplicationCollection,
     TriggerApplicationCollections,
@@ -33,8 +34,8 @@ import { BlueprintApplication } from "triggers-menu";
 import utils = foundry.utils;
 
 const APPLICATION_MODES = ["setting", "free"] as const;
-const FORBIDDEN_NODE_CATEGORIES = [GATE_CATEGORY, VARIABLE_CATEGORY];
-const FORBIDDEN_NODE_TYPE = [EXIT_GATE_TYPE, ENTRY_GATE_TYPE, GETTER_VARIABLE_TYPE];
+const FORBIDDEN_NODE_CATEGORIES = [GATE_CATEGORY, VARIABLE_CATEGORY] as const;
+const FORBIDDEN_NODE_TYPE = [EXIT_GATE_TYPE, ENTRY_GATE_TYPE, GETTER_VARIABLE_TYPE, START_EVENT_TYPE] as const;
 
 class TriggerApplication {
     static #instances: Collection<string, TriggerApplication> = new Collection();
@@ -111,7 +112,7 @@ class TriggerApplication {
             ),
         );
 
-        // if no event in the application, we had a default one
+        // if no event in the application, we add a default one
         if (!this.#events.size) {
             this.#events.set(_StartEventNode.type, _StartEventNode as typeof TriggerNode);
             this.#nodes.set(_StartEventNode.type, _StartEventNode as typeof TriggerNode);
