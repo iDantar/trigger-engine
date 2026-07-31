@@ -217,7 +217,7 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
             this.#triggers.delete(fullId);
         }
 
-        // we add or update (if not currently updating) triggers only if needed
+        // we add or replace (that are not currently updating) triggers only if needed
         for (const source of settings.sources) {
             if (!R.isObjectType(source) || !R.isString(source.id)) continue;
             if (updatedTriggers && !R.isIncludedIn(source.id, updatedTriggers)) continue;
