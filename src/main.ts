@@ -19,6 +19,7 @@ Hooks.once("init", async () => {
         type: Boolean,
         default: false,
         scope: "user",
+        config: false,
         onChange: (value: boolean) => {
             const app = foundry.applications.instances.get("trigger-engine-blueprint");
             app?.element.classList.toggle("stretched", value);
