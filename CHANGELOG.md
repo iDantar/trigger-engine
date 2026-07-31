@@ -1,6 +1,18 @@
+# 1.23.0
+
+- this release comes with a huge refactor of the module's preparation logic to significantly improve performances on worlds that have a lot of triggers
+  - thanks to [Vauxs](https://github.com/MrVauxs) and [fotoply](https://github.com/fotoply) for guiding me into isolating the parts of the code that were at fault as well as offering directions to solve them
+  - to give an extreme example, with a world using `Trigger Animation Trove (PF2e / SF2e)` with all triggers enabled (166 at the time of testings), we went from ~7000ms to less than 1ms for a `save + preparation + render of the app` process
+  - note that there was no issue with the triggers running in your worlds, it was just about preparation and the blueprint menu
+- fix `__start_event__` missing from forbidden node types
+- fix some triggers being shown as `invalid` for reasons that should not completely disqualify them
+  - the issues are resolved in the data instead of branding the triggers as completely `invalid`
+- fix lock icon for `invalid` triggers not being aligned with other lock icons
+- fix `TriggerApplication.prepareApplications` not being awaited before calling the `triggerEngine.ready` hook
+
 # 1.22.1
 
-- add new `triggerEngine.ready` which is called once all applications are ready
+- add new `triggerEngine.ready` hook which is called once all applications are ready
 
 # 1.22.0
 
