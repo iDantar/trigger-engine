@@ -593,16 +593,20 @@ class BlueprintNode extends PIXI.Container {
 
     preciseText(text: string, options?: PreciseTextOptions): PreciseText;
     preciseText(text: Maybe<string>, options?: PreciseTextOptions): PreciseText | undefined;
-    preciseText(text: Maybe<string>, options: PreciseTextOptions = {}) {
+    preciseText(text: Maybe<string>, options?: PreciseTextOptions) {
         if (!R.isString(text)) return;
+        const style = this.preciseTextStyle(options);
+        return new foundry.canvas.containers.PreciseText(text, style);
+    }
 
+    preciseTextStyle(options: Exclude<PreciseTextOptions, PIXI.TextStyle> = {}): PIXI.TextStyle {
         if (R.isNumber(options.fontMult)) {
             options.fontSize = this.fontSize * options.fontMult;
         }
 
         delete options.fontMult;
 
-        const style = new PIXI.TextStyle(
+        return new PIXI.TextStyle(
             foundry.utils.mergeObject(
                 {
                     fontFamily: "Signika",
@@ -624,8 +628,6 @@ class BlueprintNode extends PIXI.Container {
                 options,
             ),
         );
-
-        return new foundry.canvas.containers.PreciseText(text, style);
     }
 
     getCustomCategorySchemas(category: EntryCategory | "outs"): BaseCustomSchema[] {
