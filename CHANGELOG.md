@@ -1,3 +1,11 @@
+# 1.24.0
+
+- this release comes with even more performance boosts (don't close your eyes or you are gonna miss it!)
+  - thanks to [fotoply](https://github.com/fotoply) once again for all the diagnostics
+  - more work has been done to further improve preparation time which also speeds up the opening of the blueprint app for world that have a lot of triggers
+  - add `culling` to the blueprint application to improve rendering performances for triggers that have an unconsiderate amount of nodes and connections
+- fix not being able to use `Copy Node` and `Duplicate Node` context menu options
+
 # 1.23.0
 
 - this release comes with a huge refactor of the module's preparation logic to significantly improve performances on worlds that have a lot of triggers
