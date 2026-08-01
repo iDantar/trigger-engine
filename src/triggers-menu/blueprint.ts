@@ -57,12 +57,13 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
 
         this.#parent = parent;
 
+        this.stage.cullable = true;
+        this.stage.hitArea = this.#hitArea = new PIXI.Rectangle();
+
         this.stage.addChild(
             (this.#gridLayer = new BlueprintGridLayer(this)),
             (this.#layers = new BlueprintLayers(this)),
         );
-
-        this.stage.hitArea = this.#hitArea = new PIXI.Rectangle();
 
         this.resetTriggers();
 
