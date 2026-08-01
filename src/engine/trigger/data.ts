@@ -1,6 +1,6 @@
-import { zCollection, zDocument } from "_zod";
+import { zCollection, zDocument, zDocumentId } from "_zod";
 import { NodeData, NodeDataSchema, zConnectionId, zNodeDataSchema } from "engine";
-import { z, zDocumentId } from "foundry-helpers";
+import { z } from "foundry-helpers";
 
 class TriggerData extends zDocument<TriggerDataSchema> {
     static get defineSchema() {
@@ -26,7 +26,7 @@ const zTriggerVariable = z.object({
 });
 
 const zTriggerDataSchema = z.object({
-    id: zDocumentId(),
+    id: zDocumentId,
     description: z.string().trim().default(""),
     folder: z.string().trim().default(""),
     name: z.string().trim().default(""),

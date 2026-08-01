@@ -1,10 +1,11 @@
-import { z, zDocumentId } from "foundry-helpers";
+import { z } from "foundry-helpers";
 import { zCustomInputValue } from ".";
+import { zDocumentId } from "_zod";
 
 // data
 
 const zBaseData = z.object({
-    id: zDocumentId(),
+    id: zDocumentId,
     input: zCustomInputValue,
     label: z.string().trim().min(1),
     slug: z.string().trim().min(1),

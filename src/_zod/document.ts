@@ -1,5 +1,5 @@
-import { R, z, zDocumentId } from "foundry-helpers";
-import { zCollection } from ".";
+import { R, z } from "foundry-helpers";
+import { zCollection, zDocumentId } from ".";
 
 abstract class zDocument<TSchema extends zDocumentSource = zDocumentSource> {
     #invalid: boolean = false;
@@ -103,7 +103,7 @@ abstract class zDocument<TSchema extends zDocumentSource = zDocumentSource> {
     }
 
     #initializeSource(source: z.core.$ZodLooseShape) {
-        source.id = zDocumentId().parse(source.id);
+        source.id = zDocumentId.parse(source.id);
 
         for (const [key, field] of R.entries(this._schema.shape)) {
             if (!(key in source)) {

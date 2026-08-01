@@ -1,6 +1,6 @@
-import { zDocument } from "_zod";
+import { zDocument, zDocumentId } from "_zod";
 import { zCustomInputData, zCustomOutData, zCustomOutputData, zEntryDataSchema } from "engine";
-import { z, zDocumentId, zPoint } from "foundry-helpers";
+import { z, zPoint } from "foundry-helpers";
 
 class NodeData extends zDocument<NodeDataSchema> {
     static get defineSchema() {
@@ -21,7 +21,7 @@ const zNodeCustoms = z.object({
 
 const zNodeDataSchema = z.object({
     custom: zNodeCustoms.default(() => ({ outs: {}, inputs: {}, outputs: {} })),
-    id: zDocumentId(),
+    id: zDocumentId,
     inputs: zEntryDataSchema,
     outs: zEntryDataSchema,
     position: zPoint(),
