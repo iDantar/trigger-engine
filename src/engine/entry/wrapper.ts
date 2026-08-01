@@ -1,6 +1,5 @@
 import { zForceSafeParse } from "_zod";
 import {
-    BaseEntrySchemaInput,
     BaseEntrySchemaOutput,
     NodeData,
     NodeEntry,
@@ -30,7 +29,7 @@ function instantiateEntry(
     trigger: OpenTrigger,
     parent: OpenTriggerNode,
     category: EntryCategory,
-    entrySchema: BaseEntrySchemaInput,
+    entrySchema: BaseEntrySchemaOutput,
     nodeData: NodeData,
     open: true,
 ): OpenNodeEntry | undefined;
@@ -38,7 +37,7 @@ function instantiateEntry(
     trigger: Trigger,
     parent: TriggerNode,
     category: EntryCategory,
-    entrySchema: BaseEntrySchemaInput,
+    entrySchema: BaseEntrySchemaOutput,
     nodeData: NodeData,
     open: boolean,
 ): NodeEntry | undefined;
@@ -46,7 +45,7 @@ function instantiateEntry(
     trigger: Trigger,
     parent: TriggerNode,
     category: EntryCategory,
-    entrySchema: BaseEntrySchemaInput,
+    entrySchema: BaseEntrySchemaOutput,
     nodeData: NodeData,
 ): NodeEntry | OpenNodeEntry | undefined {
     let EntryCls = trigger.application.entries.get(entrySchema.type) as typeof NodeEntry;
@@ -79,9 +78,7 @@ function instantiateEntry(
     return new EntryCls(parent, category, nodeData, entrySchema, entryField);
 }
 
-interface OpenNodeEntry extends NodeEntry {
-    get schema(): BaseEntrySchemaOutput;
-}
+interface OpenNodeEntry extends NodeEntry {}
 
 export { instantiateEntry };
 export type { OpenNodeEntry };

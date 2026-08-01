@@ -23,12 +23,10 @@ class Trigger<TNode extends TriggerNode = TriggerNode> {
         this.#data = data;
         this.#parent = parent;
         this.#userId = userId;
+    }
 
-        Object.defineProperty(this, "nodes", {
-            get() {
-                return this.#nodes;
-            },
-        });
+    get nodes(): Collection<string, TNode> {
+        return this.#nodes;
     }
 
     get application(): TriggerApplication {
@@ -135,10 +133,6 @@ function getTriggerPathData(triggerPath: TriggerPath): TriggerPathData {
         applicationKey: `${moduleId}:${applicationId}`,
         triggerId,
     };
-}
-
-interface Trigger {
-    get nodes(): Collection<string, TriggerNode>;
 }
 
 type TriggerPath = `${ApplicationKey}:${string}`;

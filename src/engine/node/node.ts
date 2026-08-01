@@ -32,7 +32,6 @@ import {
     LocalizeArgs,
     MODULE,
     R,
-    ScenePF2e,
     TokenDocumentPF2e,
     TokenDocumentUUID,
 } from "foundry-helpers";
@@ -45,6 +44,7 @@ class TriggerNode<
     TCustomOutputs extends string | never = string,
     TState extends string | never = string,
 > {
+    #data: NodeData;
     #in: NodeBridge | null;
     #inputs: Collection<string, NodeEntry>;
     #nextCalled: boolean = false;
@@ -53,6 +53,7 @@ class TriggerNode<
     #outs: Collection<string, NodeBridge>;
     #parent: Trigger;
     #sceneId?: string;
+    #state: TState | null;
     #userId?: string;
 
     /** @private You musn't use constructor in your child class */
@@ -63,11 +64,8 @@ class TriggerNode<
         exitGate: { node: TriggerNode; schemas: OutputEntrySchema[] } | undefined,
         open: boolean,
     ) {
-        const self = this;
         const SelfCls = this.constructor as typeof TriggerNode;
-
         const isEvent = SelfCls.isEvent;
-
         const nodeStates = getNodeStates(SelfCls);
         const nodeState = !nodeStates
             ? null
@@ -75,133 +73,9 @@ class TriggerNode<
               ? nodeData.state
               : nodeStates[0];
 
-        // scene context
-        Object.defineProperty(this, "sceneContext", {
-            get(): Scene | undefined {
-                return (self.#sceneId && game.scenes.get(self.#sceneId)) || parent.sceneContext;
-            },
-            set(sceneOrToken: Maybe<Scene | TokenDocument>) {
-                const scene = sceneOrToken instanceof TokenDocument ? sceneOrToken.parent : sceneOrToken;
-
-                if (scene) {
-                    self.#sceneId = scene.id;
-                    parent.sceneContext = scene as ScenePF2e;
-                }
-            },
-            configurable: false,
-            enumerable: true,
-        });
-
-        // user context
-        Object.defineProperty(this, "userContext", {
-            get(): User {
-                return (self.#userId && game.users.get(self.#userId)) || parent.userContext;
-            },
-            set(user: User) {
-                self.#userId = user.id;
-                parent.userContext = user;
-            },
-            configurable: false,
-            enumerable: true,
-        });
-
-        // from data accessors
-        Object.defineProperties(
-            this,
-            R.fromKeys(["id", "invalid"] as const, (property) => {
-                return {
-                    value: nodeData[property],
-                    configurable: false,
-                    enumerable: true,
-                    writable: false,
-                };
-            }),
-        );
-
-        // from private methods
-        Object.defineProperties(
-            this,
-            R.pipe(
-                [
-                    ["executeNext", this.#executeNext],
-                    ["getCustomInputs", this.#getCustomInputs],
-                    ["getCustomInputsValues", this.#getCustomInputsValues],
-                    ["getInputValue", this.#getInputValue],
-                    ["getLocalValue", this.#getLocalValue],
-                    ["getCustomOutKey", this.#getCustomOutKey],
-                    ["getCustomOutputs", this.#getCustomOutputs],
-                    ["getOutputValue", this.#getOutputValue],
-                    ["getTargetToken", this.#getTargetToken],
-                    ["getTargetsTokens", this.#getTargetsTokens],
-                    ["localize", this.#localize],
-                    ["rootLocalize", this.#rootLocalize],
-                    ["setCustomOutputValues", this.#setCustomOutputValues],
-                    ["setOutputValue", this.#setOutputValue],
-                ] as const,
-                R.fromEntries(),
-                R.mapValues((method) => {
-                    return {
-                        value: method.bind(this),
-                        configurable: false,
-                        enumerable: false,
-                        writable: false,
-                    };
-                }),
-            ),
-        );
-
-        // from static accessors
-        Object.defineProperties(
-            this,
-            R.fromKeys(["isEvent", "type", "category"] as const, (property) => {
-                return {
-                    value: SelfCls[property],
-                    configurable: false,
-                    enumerable: true,
-                    writable: false,
-                };
-            }),
-        );
-
-        // from trigger
-        Object.defineProperties(
-            this,
-            R.fromKeys(["getContext", "setContext"] as const, (property) => {
-                return {
-                    value: parent[property].bind(parent),
-                    configurable: false,
-                    enumerable: false,
-                    writable: false,
-                };
-            }),
-        );
-
-        // from application
-        Object.defineProperties(
-            this,
-            R.fromKeys(
-                [
-                    "convertFromEmitable",
-                    "convertObjectFromEmitable",
-                    "convertObjectToEmitable",
-                    "convertToEmitable",
-                    "convertValueFromEmitable",
-                    "convertValuesFomEmitable",
-                    "convertValuesToEmitable",
-                    "convertValueToEmitable",
-                    "parseUserValue",
-                    "parseUserValues",
-                ] as const,
-                (property) => {
-                    return {
-                        value: parent.application[property].bind(parent.application),
-                        configurable: false,
-                        enumerable: false,
-                        writable: false,
-                    };
-                },
-            ),
-        );
+        this.#parent = parent;
+        this.#data = nodeData;
+        this.#state = nodeState as TState | null;
 
         // bridges
         const [ins, outs] = R.map(
@@ -260,29 +134,6 @@ class TriggerNode<
             },
         );
 
-        // some properties
-        Object.defineProperties(
-            this,
-            R.pipe(
-                [
-                    ["nodePath", `${parent.path}:${this.id}`],
-                    ["state", nodeState],
-                    ["triggerName", parent.name || parent.id],
-                    ["triggerPath", parent.path],
-                ] as const,
-                R.fromEntries(),
-                R.mapValues((value) => {
-                    return {
-                        value,
-                        configurable: false,
-                        enumerable: true,
-                        writable: false,
-                    };
-                }),
-            ),
-        );
-
-        this.#parent = parent;
         this.#in = ins.at(0)?.[1] || null;
         this.#outs = new Collection(outs);
         this.#inputs = inputs;
@@ -577,41 +428,246 @@ class TriggerNode<
     }
 
     /**
-     * Private Stuff below, this is not for you to worry about
+     * *************************************************************
+     * Stuff that is not meant to be overridden, don't be an idiot!
+     * *************************************************************
      */
 
-    get #isExecutable(): boolean {
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode.category}
+     */
+    get category(): string {
+        return (this.constructor as typeof TriggerNode).category;
+    }
+
+    /**
+     * @private
+     *
+     * the id of the node
+     */
+    get id(): string {
+        return this.#data.id;
+    }
+
+    /**
+     * @private
+     *
+     * if the node is invalid
+     */
+    get invalid(): boolean {
+        return this.#data.invalid;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode.isEvent}
+     */
+    get isEvent(): boolean {
+        return (this.constructor as typeof TriggerNode).isEvent;
+    }
+
+    /**
+     * @private
+     *
+     * Is this node considered executable
+     */
+    get isExecutable(): boolean {
         return !!this.#in || this.#outs.size > 0;
     }
 
-    async #resolve() {
-        const trigger = this.#parent as OpenTrigger;
-
-        const inputs: ResolvedNodeEntry[] = await Promise.all(
-            this.#inputs.map(async ({ key, slug, type }): Promise<ResolvedNodeEntry> => {
-                return {
-                    key: slug ?? key,
-                    type,
-                    value: await this.getInputValue(key),
-                };
-            }),
-        );
-
-        const outputs = await Promise.all(
-            this.#outputs.map(async ({ key, slug, type }): Promise<ResolvedNodeEntry> => {
-                return {
-                    key: slug ?? key,
-                    type,
-                    value: await this.#outputValues[key],
-                };
-            }),
-        );
-
-        trigger.addResolvedNode({ inputs, outputs, type: this.type } satisfies ResolvedTriggerNode);
+    /**
+     * @private
+     *
+     * The internal path for the node.
+     */
+    get nodePath(): TriggerNodePath {
+        return `${this.#parent.path}:${this.id}`;
     }
 
-    async #executeNext(out: string, ...args: any[]): Promise<boolean> {
-        if (!this.#isExecutable) return true;
+    /**
+     * @private
+     *
+     * Scene context getter and setter.
+     */
+    get sceneContext(): Scene | undefined {
+        return (this.#sceneId && game.scenes.get(this.#sceneId)) || this.#parent.sceneContext;
+    }
+    set sceneContext(sceneOrToken: Maybe<Scene | TokenDocumentPF2e>) {
+        const scene = sceneOrToken instanceof TokenDocument ? sceneOrToken.parent : sceneOrToken;
+
+        if (scene) {
+            this.#sceneId = scene.id;
+            this.#parent.sceneContext = scene;
+        }
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode.type}
+     */
+    get type(): string {
+        return (this.constructor as typeof TriggerNode).type;
+    }
+
+    /**
+     * @private
+     *
+     * The current state of the node.
+     */
+    get state(): TState | null {
+        return this.#state;
+    }
+
+    /**
+     * @private
+     *
+     * The name for the parent trigger.
+     */
+    get triggerName(): string {
+        return this.#parent.name || this.#parent.id;
+    }
+
+    /**
+     * @private
+     *
+     * The internal path for the parent trigger.
+     */
+    get triggerPath(): TriggerPath {
+        return this.#parent.path;
+    }
+
+    /**
+     * @private
+     *
+     * User context getter and setter.
+     */
+    get userContext(): User {
+        return (this.#userId && game.users.get(this.#userId)) || this.#parent.userContext;
+    }
+    set userContext(user: User) {
+        this.#userId = user.id;
+        this.#parent.userContext = user;
+    }
+
+    /**
+     * @private
+     *
+     * Convert a value back from its websocket version.
+     */
+    convertFromEmitable(type: string, value: unknown, withType?: boolean): Promise<any | undefined> {
+        return this.#parent.application.convertFromEmitable(type, value, withType);
+    }
+
+    /**
+     * @private
+     *
+     * Convert a data object back from its websocket version.
+     *
+     * @see {@link TriggerNode#convertFromEmitable}
+     * @see {@link TriggerNode#convertValueFromEmitable}
+     * @see {@link TriggerNode#convertValuesFromEmitable}
+     */
+    convertObjectFromEmitable<T extends string>(
+        obj: Record<T, unknown>,
+        conversionTypes: PartialRecord<T, string>,
+        userValueEntries: Partial<T>[],
+        withType?: boolean,
+    ): Promise<Record<T, any>> {
+        return this.#parent.application.convertObjectFromEmitable(obj, conversionTypes, userValueEntries, withType);
+    }
+
+    /**
+     * @private
+     *
+     * Convert a data object composed of raw data and/or user values into one that is sent via websocket.
+     *
+     * @see {@link TriggerNode#convertToEmitable}
+     * @see {@link TriggerNode#convertValueToEmitable}
+     * @see {@link TriggerNode#convertValuesToEmitable}
+     */
+    convertObjectToEmitable<T extends string>(
+        obj: Record<T, unknown>,
+        conversionTypes: PartialRecord<T, string>,
+        userValueEntries: Partial<T>[],
+        parseUserValues?: boolean,
+    ): Record<T, any> {
+        return this.#parent.application.convertObjectToEmitable(
+            obj,
+            conversionTypes,
+            userValueEntries,
+            parseUserValues,
+        );
+    }
+
+    /**
+     * @private
+     *
+     * Convert a value into one that is sent via websocket.
+     */
+    convertToEmitable(type: string, value: any): UserValue | undefined {
+        return this.#parent.application.convertToEmitable(type, value) as UserValue | undefined;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#convertFromEmitable}
+     */
+    convertValueFromEmitable(entry: UserValue, withType?: boolean): Promise<any> | undefined {
+        return this.#parent.application.convertValueFromEmitable(entry, withType);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#convertValueFromEmitable}
+     */
+    convertValuesFomEmitable(values: (UserValue | undefined)[], withType?: boolean): Promise<(any | undefined)[]> {
+        return this.#parent.application.convertValuesFomEmitable(values, withType);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#convertValueToEmitable}
+     */
+    convertValuesToEmitable(values: UserValue[], parse?: boolean): (UserValue | undefined)[] {
+        return this.#parent.application.convertValuesToEmitable(values, parse);
+    }
+
+    /**
+     * @private
+     *
+     * Convert a user value into one that is sent via websocket.
+     *
+     * @see {@link TriggerNode#convertToEmitable}
+     * @see {@link TriggerNode#parseUserValue}
+     */
+    convertValueToEmitable(value: UserValue, parse?: boolean): UserValue | undefined {
+        return this.#parent.application.convertValueToEmitable(value, parse) as UserValue | undefined;
+    }
+
+    /**
+     * @private
+     *
+     * Calls the next `executable` node in the chain.
+     *
+     * @param out key of the selected `out` bridge
+     *
+     * @example
+     * return this.executeNext("out")
+     *
+     * @example
+     * return this.executeNext("true")
+     *
+     * @see {@link TriggerNode#_execute}
+     */
+    async executeNext(out: TOuts, ...args: any[]): Promise<boolean> {
+        if (!this.isExecutable) return true;
 
         if (this.#parent.application.isFreeApplication) {
             this.#nextCalled = true;
@@ -634,11 +690,62 @@ class TriggerNode<
         }
     }
 
-    #getCustomOutKey(slug: string, input: string | number): string | undefined {
+    /**
+     * @private
+     *
+     * custom data accessible accross the entire trigger
+     */
+    getContext<T>(key: string): T | undefined {
+        return this.#parent.getContext(key);
+    }
+
+    /**
+     * @private
+     *
+     * Returns a list of custom inputs data.
+     */
+    getCustomInputs<T extends any = any>(slug: TCustomInputs): Promise<{ label: string; value: T; type: string }[]> {
+        const results = this.#inputs
+            .filter((input) => input.slug === slug)
+            .map(async ({ key, label, type }): Promise<{ label: string; value: any; type: string }> => {
+                return {
+                    label: label ?? "",
+                    value: await this.getInputValue(key),
+                    type,
+                };
+            });
+
+        return Promise.all(results);
+    }
+
+    /**
+     * @private
+     *
+     * Returns a list of custom inputs values
+     */
+    getCustomInputsValues(slug: TCustomInputs): Promise<any[]> {
+        const results = this.#inputs
+            .filter((input) => input.slug === slug)
+            .map(async ({ key }) => this.getInputValue(key));
+
+        return Promise.all(results);
+    }
+
+    /**
+     * @private
+     *
+     * Returns the key of a custom out entry based on its input value.
+     */
+    getCustomOutKey(slug: string, input: string | number): string | undefined {
         return this.#outs.find((out) => out.slug === slug && out.input === input)?.key;
     }
 
-    #getCustomOutputs(slug: string): TriggerNodeCustomOutput[] {
+    /**
+     * @private
+     *
+     * Returns a list of custom outputs data (not their value).
+     */
+    getCustomOutputs(slug: TCustomOutputs): TriggerNodeCustomOutput[] {
         return this.#outputs
             .filter((output) => output.slug === slug)
             .map(({ input, key, type }): TriggerNodeCustomOutput => {
@@ -646,16 +753,23 @@ class TriggerNode<
             });
     }
 
-    #getLocalValue(key: string): any {
-        const input = this.#inputs.get(key);
-        if (!input) return;
-
-        const value = input?.value;
-        return R.isNonNullish(value) && input.isValidType(value) ? input.processValue(value) : input.default;
-    }
-
-    async #getInputValue(key: string): Promise<any> {
-        const input = this.#inputs.get(key);
+    /**
+     * @private
+     *
+     * Retrieve the computed value from one of this node's inputs.
+     *
+     * @param input key of the `input` from which you want to retrieve the value.
+     *
+     * If no connection exist with the input or the returned value is incompatible with its type,
+     * then the default value is returned instead.
+     *
+     * @example
+     * const number = await this.getInputValue("number");
+     *
+     * @see {@link TriggerNode#_execute}
+     */
+    async getInputValue<K extends keyof TInputs>(key: K): Promise<any> {
+        const input = this.#inputs.get(key as string);
         if (!input) return;
 
         const returnValue = (rawValue: any): any => {
@@ -686,33 +800,29 @@ class TriggerNode<
         }
     }
 
-    #getCustomInputs(slug: string): Promise<{ label: string; value: any }[]> {
-        const results = this.#inputs
-            .filter((input) => input.slug === slug)
-            .map(async ({ key, label, type }): Promise<{ label: string; value: any; type: string }> => {
-                return {
-                    label: label ?? "",
-                    value: await this.getInputValue(key),
-                    type,
-                };
-            });
+    /**
+     * @private
+     *
+     * Retrieve the local value of this node's input.
+     */
+    getLocalValue<K extends keyof TInputs>(key: K): any {
+        const input = this.#inputs.get(key as string);
+        if (!input) return;
 
-        return Promise.all(results);
+        const value = input?.value;
+        return R.isNonNullish(value) && input.isValidType(value) ? input.processValue(value) : input.default;
     }
 
-    #getCustomInputsValues(slug: string): Promise<any[]> {
-        const results = this.#inputs
-            .filter((input) => input.slug === slug)
-            .map(async ({ key }) => this.getInputValue(key));
-
-        return Promise.all(results);
-    }
-
-    async #getOutputValue(key: string, input: NodeEntry): Promise<any> {
+    /**
+     * @private
+     *
+     * Query the value of a connected output
+     */
+    async getOutputValue(key: string, input: NodeEntry): Promise<any> {
         const output = this.#outputs.get(key);
         if (!output) return;
 
-        const value = await (this.#isExecutable ? this.#outputValues[key] : this._query(key));
+        const value = await (this.isExecutable ? this.#outputValues[key] : this._query(key));
 
         if (output.type === input.type) {
             return value;
@@ -731,19 +841,128 @@ class TriggerNode<
               : undefined;
     }
 
-    #setOutputValue(key: string, value: any) {
-        const output = this.#outputs.get(key);
-        if (output) {
-            this.#castAndSetOutputValue(output, value);
-        }
+    /**
+     * @private
+     *
+     * If the 'target' entry doesn't have a declare 'token', then the function
+     * will try to retrieve the first active token on the scene (with options)
+     *
+     * @param {TargetDocuments} target
+     * @param {object} [options]
+     * @param {boolean} [options.linked]
+     * @param {Scene | null} [options.scene]
+     */
+    getTargetToken<T extends TokenDocument>(
+        target: Maybe<TargetDocuments>,
+        options?: FirstActiveTokenOptions,
+    ): T | undefined {
+        return getTargetToken(target, options) as T | undefined;
     }
 
-    #setCustomOutputValues(slug: string, values: any[]) {
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#getTargetToken}
+     */
+    getTargetsTokens(targets: TargetDocuments[], uuid: true, options?: FirstActiveTokenOptions): TokenDocumentUUID[];
+    getTargetsTokens<T extends TokenDocument>(
+        targets: TargetDocuments[],
+        uuid?: boolean,
+        options?: FirstActiveTokenOptions,
+    ): T[] {
+        return getTargetsTokens(targets, uuid, options) as unknown as T[];
+    }
+
+    /**
+     * @private
+     *
+     * Localization helper with pre-defined path and optional (last argument) data object for `game.i18n.format`
+     *
+     * It points directly to the path:
+     * `<module-id>.<application-id>.node.<category>.<type>.<...path>`
+     *
+     * @returns undefined if no key exist at that path
+     */
+    localize(...args: LocalizeArgs): string | undefined {
+        const SelfCls = this.constructor as typeof TriggerNode;
+        return this.rootLocalize("node", SelfCls.category, SelfCls.type, ...args);
+    }
+
+    /**
+     * @private
+     *
+     * This is used to validate values provided by users at runtime.
+     */
+    parseUserValue(userValue: unknown): UserValue | undefined {
+        return this.#parent.application.parseUserValue(userValue);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#parseUserValue}
+     *
+     * Parse & filter an array of user values.
+     */
+    parseUserValues(userValues: unknown): (UserValue | undefined)[] {
+        return this.#parent.application.parseUserValues(userValues);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#localize}
+     *
+     * It points directly to the path:
+     * `<module-id>.<application-id>.<...path>`
+     *
+     * @returns undefined if no key exist at that path
+     */
+    rootLocalize(...args: LocalizeArgs): string | undefined {
+        return this.#parent.application.localize(...args);
+    }
+
+    /**
+     * @private
+     *
+     * custom data accessible accross the entire trigger
+     */
+    setContext<T>(key: string, value: T): T {
+        return this.#parent.setContext(key, value);
+    }
+
+    /**
+     * @private
+     *
+     * Set values for this node's custom outputs.
+     *
+     * @param slug of the custom outputs
+     * @param values array where each entry represents one of the custom entries (same index order as seen in the node).
+     *
+     * @see {@link TriggerNode.defineCustomOutputs}
+     */
+    setCustomOutputValues(slug: TCustomOutputs, values: any[]): void {
         const outputs = this.#outputs.filter((output) => output.slug === slug);
 
         for (let i = 0; i < outputs.length; i++) {
             const output = outputs[i];
             this.#castAndSetOutputValue(output, values[i]);
+        }
+    }
+
+    /**
+     * @private
+     *
+     * Set the value for one of this node's outputs.
+     *
+     * @param output key of the `output` to set
+     *
+     * @see {@link TriggerNode.defineOutputs}
+     */
+    setOutputValue<K extends keyof TOutputs>(key: K, value: TOutputs[K]): void {
+        const output = this.#outputs.get(key as string);
+        if (output) {
+            this.#castAndSetOutputValue(output, value);
         }
     }
 
@@ -759,238 +978,31 @@ class TriggerNode<
         }
     }
 
-    #getTargetToken(target: Maybe<TargetDocuments>, options?: FirstActiveTokenOptions): TokenDocument | undefined {
-        return getTargetToken(target, options);
+    async #resolve() {
+        const trigger = this.#parent as OpenTrigger;
+
+        const inputs: ResolvedNodeEntry[] = await Promise.all(
+            this.#inputs.map(async ({ key, slug, type }): Promise<ResolvedNodeEntry> => {
+                return {
+                    key: slug ?? key,
+                    type,
+                    value: await this.getInputValue(key),
+                };
+            }),
+        );
+
+        const outputs = await Promise.all(
+            this.#outputs.map(async ({ key, slug, type }): Promise<ResolvedNodeEntry> => {
+                return {
+                    key: slug ?? key,
+                    type,
+                    value: await this.#outputValues[key],
+                };
+            }),
+        );
+
+        trigger.addResolvedNode({ inputs, outputs, type: this.type } satisfies ResolvedTriggerNode);
     }
-
-    #getTargetsTokens(targets: TargetDocuments[], uuid?: boolean, options?: FirstActiveTokenOptions): TokenDocument[] {
-        return getTargetsTokens(targets, uuid, options);
-    }
-
-    #rootLocalize(...args: LocalizeArgs): string | undefined {
-        return this.#parent.application.localize(...args);
-    }
-
-    #localize(...args: LocalizeArgs): string | undefined {
-        const SelfCls = this.constructor as typeof TriggerNode;
-        return this.#rootLocalize("node", SelfCls.category, SelfCls.type, ...args);
-    }
-}
-
-interface TriggerNode<
-    TOuts extends string | never = string,
-    TInputs extends Record<string, any> | never = Record<string, any>,
-    TOutputs extends Record<string, any> | never = Record<string, any>,
-    TCustomInputs extends string | never = string,
-    TCustomOutputs extends string | never = string,
-    TState extends string | never = string,
-> {
-    /** @see {@link TriggerNode.category} */
-    get category(): string;
-    /** the id of the node  */
-    get id(): string;
-    /** @see {@link TriggerNode.isEvent} */
-    get isEvent(): boolean;
-    /** if the node is invalid */
-    get invalid(): boolean;
-    /** The internal path for the node. */
-    get nodePath(): TriggerNodePath;
-    /** Scene context getter and setter. */
-    get sceneContext(): ScenePF2e | undefined;
-    set sceneContext(sceneOrToken: Maybe<ScenePF2e | TokenDocumentPF2e>);
-    /** The current state of the node. */
-    get state(): TState | null;
-    /** The name for the parent trigger. */
-    get triggerName(): string;
-    /** The internal path for the parent trigger. */
-    get triggerPath(): TriggerPath;
-    /** @see {@link TriggerNode.type} */
-    get type(): string;
-    /** User context getter and setter. */
-    get userContext(): User;
-    set userContext(user: User);
-
-    /** Convert a value back from its websocket version. */
-    convertFromEmitable(type: string, value: unknown, withType?: boolean): Promise<any | undefined>;
-
-    /**
-     * Convert a data object back from its websocket version.
-     *
-     * @see {@link TriggerNode#convertFromEmitable}
-     * @see {@link TriggerNode#convertValueFromEmitable}
-     * @see {@link TriggerNode#convertValuesFromEmitable}
-     */
-    convertObjectFromEmitable<T extends string>(
-        obj: Record<T, unknown>,
-        conversionTypes: PartialRecord<T, string>,
-        userValueEntries: Partial<T>[],
-        withType?: boolean,
-    ): Promise<Record<T, any>>;
-
-    /**
-     * Convert a data object composed of raw data and/or user values into one that is sent via websocket.
-     *
-     * @see {@link TriggerNode#convertToEmitable}
-     * @see {@link TriggerNode#convertValueToEmitable}
-     * @see {@link TriggerNode#convertValuesToEmitable}
-     */
-    convertObjectToEmitable<T extends string>(
-        obj: Record<T, unknown>,
-        conversionTypes: PartialRecord<T, string>,
-        userValueEntries: Partial<T>[],
-        parseUserValues?: boolean,
-    ): Record<T, any>;
-
-    /** Convert a value into one that is sent via websocket. */
-    convertToEmitable(type: string, value: any): UserValue | undefined;
-
-    /** @see {@link TriggerNode#convertFromEmitable} */
-    convertValueFromEmitable(entry: UserValue, withType?: boolean): Promise<any> | undefined;
-
-    /** @see {@link TriggerNode#convertValueFromEmitable} */
-    convertValuesFomEmitable(values: (UserValue | undefined)[], withType?: boolean): Promise<(any | undefined)[]>;
-
-    /** @see {@link TriggerNode#convertValueToEmitable} */
-    convertValuesToEmitable(values: UserValue[], parse?: boolean): (UserValue | undefined)[];
-
-    /**
-     * Convert a user value into one that is sent via websocket.
-     *
-     * @see {@link TriggerNode#convertToEmitable}
-     * @see {@link TriggerNode#parseUserValue}
-     */
-    convertValueToEmitable(value: UserValue, parse?: boolean): UserValue | undefined;
-
-    /**
-     * Calls the next `executable` node in the chain.
-     *
-     * @param out key of the selected `out` bridge
-     *
-     * @example
-     * return this.executeNext("out")
-     *
-     * @example
-     * return this.executeNext("true")
-     *
-     * @see {@link TriggerNode#_execute}
-     */
-    executeNext(out: TOuts, ...args: any[]): Promise<boolean>;
-
-    /** custom data accessible accross the entire trigger */
-    getContext<T>(key: string): T | undefined;
-
-    /** Returns the key of a custom out entry based on its input value. */
-    getCustomOutKey(slug: string, input: string | number): string | undefined;
-
-    /** Returns a list of custom outputs data (not their value). */
-    getCustomOutputs(slug: TCustomOutputs): TriggerNodeCustomOutput[];
-
-    /** Returns a list of custom inputs data. */
-    getCustomInputs<T extends any = any>(slug: TCustomInputs): Promise<{ label: string; value: T; type: string }[]>;
-
-    /** Returns a list of custom inputs values */
-    getCustomInputsValues(slug: TCustomInputs): Promise<any[]>;
-
-    /**
-     * Retrieve the computed value from one of this node's inputs.
-     *
-     * @param input key of the `input` from which you want to retrieve the value.
-     *
-     * If no connection exist with the input or the returned value is incompatible with its type,
-     * then the default value is returned instead.
-     *
-     * @example
-     * const number = await this.getInputValue("number");
-     *
-     * @see {@link TriggerNode#_execute}
-     */
-    getInputValue<K extends keyof TInputs>(input: K): Promise<TInputs[K]>;
-
-    /** Retrieve the local value of this node's input. */
-    getLocalValue<K extends keyof TInputs>(input: K): TInputs[K];
-
-    /** Query the value of a connected output */
-    getOutputValue(key: string, input: NodeEntry): Promise<any>;
-
-    /**
-     * If the 'target' entry doesn't have a declare 'token', then the function
-     * will try to retrieve the first active token on the scene (with options)
-     *
-     * @param {TargetDocuments} target
-     * @param {object} [options]
-     * @param {boolean} [options.linked]
-     * @param {Scene | null} [options.scene]
-     */
-    getTargetToken<T extends TokenDocument>(
-        target: Maybe<TargetDocuments>,
-        options?: { linked?: boolean; scene?: Scene | null },
-    ): T | undefined;
-
-    /** @see {@link TriggerNode#getTargetToken} */
-    getTargetsTokens(
-        targets: TargetDocuments[],
-        uuid: true,
-        options?: { linked?: boolean; scene?: Scene | null },
-    ): TokenDocumentUUID[];
-    getTargetsTokens<T extends TokenDocument>(
-        targets: TargetDocuments[],
-        uuid?: boolean,
-        options?: { linked?: boolean; scene?: Scene | null },
-    ): T[];
-
-    /**
-     * Localization helper with pre-defined path and optional (last argument) data object for `game.i18n.format`
-     *
-     * It points directly to the path:
-     * `<module-id>.<application-id>.node.<category>.<type>.<...path>`
-     *
-     * @returns undefined if no key exist at that path
-     */
-    localize(...args: LocalizeArgs): string | undefined;
-
-    /**
-     * This is used to validate values provided by users at runtime.
-     */
-    parseUserValue(userValue: unknown): UserValue | undefined;
-
-    /**
-     * @see {@link TriggerNode#parseUserValue}
-     *
-     * Parse & filter an array of user values.
-     */
-    parseUserValues(userValues: unknown): (UserValue | undefined)[];
-
-    /**
-     * @see {@link TriggerNode#localize}
-     *
-     * It points directly to the path:
-     * `<module-id>.<application-id>.<...path>`
-     *
-     * @returns undefined if no key exist at that path
-     */
-    rootLocalize(...args: LocalizeArgs): string | undefined;
-
-    /** custom data accessible accross the entire trigger */
-    setContext<T>(key: string, value: T): T;
-
-    /**
-     * Set the value for one of this node's outputs.
-     *
-     * @param output key of the `output` to set
-     *
-     * @see {@link TriggerNode.defineOutputs}
-     */
-    setOutputValue<K extends keyof TOutputs>(output: K, value: TOutputs[K]): void;
-
-    /**
-     * Set values for this node's custom outputs.
-     *
-     * @param slug of the custom outputs
-     * @param values array where each entry represents one of the custom entries (same index order as seen in the node).
-     *
-     * @see {@link TriggerNode.defineCustomOutputs}
-     */
-    setCustomOutputValues(slug: TCustomOutputs, values: any[]): void;
 }
 
 type TriggerNodePath = `${TriggerPath}:${string}`;

@@ -1,12 +1,4 @@
-import {
-    BaseEntrySchemaInput,
-    BaseEntrySchemaOutput,
-    ConnectionId,
-    EntryCategory,
-    NodeData,
-    NodeField,
-    TriggerNode,
-} from "engine";
+import { BaseEntrySchemaOutput, ConnectionId, EntryCategory, NodeData, NodeField, TriggerNode } from "engine";
 import { LocalizeArgs, MODULE, R } from "foundry-helpers";
 
 /**
@@ -14,92 +6,28 @@ import { LocalizeArgs, MODULE, R } from "foundry-helpers";
  * version of every connection type.
  */
 class NodeEntry<TValue extends unknown = unknown, TFieldSchema extends Record<string, any> | undefined = undefined> {
+    #category: EntryCategory;
+    #data: NodeData;
+    #field: TFieldSchema;
+    #parent: TriggerNode;
+    #schema: BaseEntrySchemaOutput;
+
     /** @private You musn't use constructor in your child class */
     constructor(
         parent: TriggerNode,
         category: EntryCategory,
         nodeData: NodeData,
-        entrySchema: BaseEntrySchemaInput,
+        entrySchema: BaseEntrySchemaOutput,
         entryField: Record<string, any>,
     ) {
-        // field
-        Object.defineProperty(this, "field", {
-            value: entryField,
-            configurable: false,
-            enumerable: false,
-            writable: false,
-        });
+        this.#category = category;
+        this.#data = nodeData;
+        this.#field = entryField as TFieldSchema;
+        this.#parent = parent;
+        this.#schema = entrySchema;
 
-        foundry.utils.deepFreeze(this.field as any);
-
-        // schema
-        Object.defineProperty(this, "schema", {
-            value: entrySchema,
-            configurable: false,
-            enumerable: false,
-            writable: false,
-        });
-
-        // category
-        Object.defineProperty(this, "category", {
-            value: category,
-            configurable: false,
-            enumerable: true,
-            writable: false,
-        });
-
-        // from data
-        Object.defineProperties(
-            this,
-            R.fromKeys(["connection", "value"] as const, (property) => {
-                return {
-                    get() {
-                        return category === "inputs" ? nodeData.inputs[entrySchema.key]?.[property] : undefined;
-                    },
-                    configurable: false,
-                    enumerable: true,
-                };
-            }),
-        );
-
-        // from schema accessors
-        Object.defineProperties(
-            this,
-            R.fromKeys(["input", "isArray", "key", "label", "slug", "tooltip"] as const, (property) => {
-                return {
-                    value: entrySchema[property],
-                    configurable: false,
-                    enumerable: true,
-                    writable: false,
-                };
-            }),
-        );
-
-        // from static accessors
-        Object.defineProperties(
-            this,
-            R.fromKeys(["type", "color"] as const, (property) => {
-                return {
-                    value: (this.constructor as typeof NodeEntry)[property],
-                    configurable: false,
-                    enumerable: true,
-                    writable: false,
-                };
-            }),
-        );
-
-        // from static methods
-        Object.defineProperties(
-            this,
-            R.fromKeys(["castValue", "fromJSON", "isValidType", "toJSON"] as const, (property) => {
-                return {
-                    value: (this.constructor as typeof NodeEntry)[property],
-                    configurable: false,
-                    enumerable: false,
-                    writable: false,
-                };
-            }),
-        );
+        foundry.utils.deepFreeze(this.#field as any);
+        foundry.utils.deepFreeze(this.#schema);
 
         // from private methods
         Object.defineProperties(
@@ -212,42 +140,185 @@ class NodeEntry<TValue extends unknown = unknown, TFieldSchema extends Record<st
     processValue(value: TValue): TValue {
         return value;
     }
-}
 
-interface NodeEntry<
-    TValue extends unknown = unknown,
-    TFieldSchema extends Record<string, any> | undefined = undefined,
-> extends Pick<BaseEntrySchemaOutput, "input" | "isArray" | "key" | "label" | "slug" | "tooltip"> {
-    /** The entry category. */
-    get category(): EntryCategory;
-    /** @see {@link NodeEntry.color} */
-    get color(): ColorSource;
-    /** The connection path of this entry. */
-    get connection(): ConnectionId | undefined;
-    /** @see {@link NodeField.defineSchema} The field data for this instance. */
-    get field(): TFieldSchema;
-    /** The local value of this entry. */
-    get value(): TValue | undefined;
-    /** @see {@link NodeEntry.type} */
-    get type(): string;
+    /**
+     * *************************************************************
+     * Stuff that is not meant to be overridden, don't be an idiot!
+     * *************************************************************
+     */
 
-    /** @see {@link NodeEntry.castValue} */
-    castValue(value: unknown): unknown;
+    /**
+     * @private
+     *
+     * The entry category.
+     */
+    get category(): EntryCategory {
+        return this.#category;
+    }
 
-    /** @see {@link NodeEntry.fromJSON} */
-    fromJSON(value: JSONValue): Promise<any> | any;
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry.color}
+     */
+    get color(): ColorSource {
+        return (this.constructor as typeof NodeEntry).color;
+    }
 
-    /** @see {@link NodeEntry.isValidType} */
-    isValidType(value: unknown): value is Exclude<TValue, undefined>;
+    /**
+     * @private
+     *
+     * The connection path of this entry.
+     */
+    get connection(): ConnectionId | undefined {
+        return this.category === "inputs" ? this.#data.inputs[this.#schema.key]?.connection : undefined;
+    }
 
-    /** @see {@link TriggerNode#localize} */
-    localize(...args: LocalizeArgs): string | undefined;
+    /**
+     * @private
+     *
+     * @see {@link NodeField.defineSchema} The field data for this instance.
+     */
+    get field(): TFieldSchema {
+        return this.#field;
+    }
 
-    /** @see {@link TriggerNode#rootLocalize} */
-    rootLocalize(...args: LocalizeArgs): string | undefined;
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry#schema}
+     */
+    get input(): string | number | undefined {
+        return this.#schema.input;
+    }
 
-    /** @see {@link NodeEntry.toJSON} */
-    toJSON(value: TValue): JSONValue;
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry#schema}
+     */
+    get isArray(): boolean {
+        return this.#schema.isArray;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry#schema}
+     */
+    get key(): string {
+        return this.#schema.key;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry#schema}
+     */
+    get label(): string | undefined {
+        return this.#schema.label;
+    }
+
+    /**
+     * @private
+     *
+     * The schema defined in {@link TriggerNode}
+     */
+    get schema(): BaseEntrySchemaOutput {
+        return this.#schema;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry#schema}
+     */
+    get slug(): string | undefined {
+        return this.#schema.slug;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry#schema}
+     */
+    get tooltip(): string | boolean {
+        return this.#schema.tooltip;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry.type}
+     */
+    get type(): string {
+        return (this.constructor as typeof NodeEntry).type;
+    }
+
+    /**
+     * @private
+     *
+     * The local value of this entry.
+     */
+    get value(): TValue | undefined {
+        return this.category === "inputs"
+            ? (this.#data.inputs[this.#schema.key]?.value as TValue | undefined)
+            : undefined;
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry.castValue}
+     */
+    castValue(value: unknown): unknown {
+        return (this.constructor as typeof NodeEntry).castValue(value);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry.fromJSON}
+     */
+    fromJSON(value: JSONValue): Promise<any> | any {
+        return (this.constructor as typeof NodeEntry).fromJSON(value);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry.isValidType}
+     */
+    isValidType(value: unknown): value is Exclude<TValue, undefined> {
+        return (this.constructor as typeof NodeEntry).isValidType(value);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#localize}
+     */
+    localize(...args: LocalizeArgs): string | undefined {
+        return this.#parent.localize(...args);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link TriggerNode#rootLocalize}
+     */
+    rootLocalize(...args: LocalizeArgs): string | undefined {
+        return this.#parent.rootLocalize(...args);
+    }
+
+    /**
+     * @private
+     *
+     * @see {@link NodeEntry.toJSON}
+     */
+    toJSON(value: TValue): JSONValue {
+        return (this.constructor as typeof NodeEntry).toJSON(value);
+    }
 }
 
 export { NodeEntry };

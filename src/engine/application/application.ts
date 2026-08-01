@@ -458,7 +458,7 @@ class TriggerApplication {
         this.#moduleSources.push(...sources);
     }
 
-    parseUserValue(userValue: UserValue): UserValue | undefined {
+    parseUserValue(userValue: unknown): UserValue | undefined {
         if (!isUserValue(userValue)) return;
 
         const entry = this.entries.get(userValue.type);
@@ -476,7 +476,7 @@ class TriggerApplication {
         return { type: userValue.type, value };
     }
 
-    parseUserValues(userValues: UserValue[]): (UserValue | undefined)[] {
+    parseUserValues(userValues: unknown): (UserValue | undefined)[] {
         return R.isArray(userValues) ? userValues.map((value) => this.parseUserValue(value)) : [];
     }
 
