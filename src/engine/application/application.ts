@@ -342,40 +342,45 @@ class TriggerApplication {
         this.#triggers = {};
         this.#triggerEvents = {};
 
-        // we add or update triggers only if needed
+        // we add or update triggers if needed
         const updatedTriggers: string[] = [];
-        const moduleSources = this.moduleSources.filter((source): source is WithRequired<TriggerDataInput, "id"> => {
-            return filterSource(source) && R.isIncludedIn(source.id, settings.enabled);
-        });
-        const worldSources = settings.sources.filter((source): source is WithRequired<TriggerDataInput, "id"> => {
-            return filterSource(source) && !R.isIncludedIn(source.id, settings.disabled);
-        });
-        const allSources = R.uniqueBy([...moduleSources, ...worldSources], R.prop("id"));
-        const allTriggerIds = allSources.map((source) => source.id);
 
-        for (const source of allSources) {
-            const exist = previousTriggers[source.id] as TriggerData | undefined;
+        const allSources = [
+            ["module", this.moduleSources],
+            ["world", settings.sources],
+        ] as const;
 
-            if (exist) {
+        for (const [type, sources] of allSources) {
+            for (const source of sources) {
+                if (!filterSource(source)) continue;
+
+                const exist = previousTriggers[source.id] as TriggerData | undefined;
                 delete previousTriggers[source.id]; // the remaining IDs are of triggers that no longer exist
-                if (!diffTriggers(exist, source)) continue; // no check needed if no difference
-            }
 
-            updatedTriggers.push(source.id); // trigger has changed
+                if (
+                    (type === "module" && !R.isIncludedIn(source.id, settings.enabled)) ||
+                    (type === "world" && R.isIncludedIn(source.id, settings.disabled))
+                )
+                    continue; // not an enabled trigger so we skip
 
-            try {
-                const trigger = this.createTrigger(source);
-                if (trigger && !trigger.invalid) {
-                    this.#triggers[source.id] = trigger.data;
+                if (exist && !diffTriggers(exist, source)) {
+                    this.#triggers[source.id] = exist;
+                    continue; // no update needed if no difference
                 }
-            } catch (error) {}
+
+                updatedTriggers.push(source.id); // trigger has changed
+
+                try {
+                    const trigger = this.createTrigger(source);
+                    if (trigger && !trigger.invalid) {
+                        this.#triggers[source.id] = trigger.data;
+                    }
+                } catch (error) {}
+            }
         }
 
         // we process
-        const triggers = R.pipe(
-            R.values(this.#triggers),
-            R.sortBy([R.prop("priority"), "desc"], (data) => allTriggerIds.indexOf(data.id)),
-        );
+        const triggers = R.pipe(R.values(this.#triggers), R.sortBy([R.prop("priority"), "desc"]));
 
         const events: string[] = [];
         const otherNodes: string[] = [];
@@ -799,15 +804,26 @@ function objectDifferentFrom(obj: object, against: object): boolean {
 }
 
 function diffTriggers(data: TriggerData, source: TriggerDataInput): boolean {
-    for (const [property, value] of R.entries(data._source)) {
-        const newValue = source[property];
+    for (const [property, dataSource] of R.entries(data._source)) {
+        if (property === "tags") {
+            const newValue = source.tags ?? [];
+            if (!arraysEqual(dataSource, newValue)) return true;
+        } else if (property === "nodes") {
+            const newValue = source.nodes ?? [];
+            if (objectDifferentFrom(newValue, dataSource)) return true;
+        } else if (property === "variables") {
+            const newValue = source.variables ?? {};
+            if (objectDifferentFrom(newValue, dataSource)) return true;
+        } else {
+            const rawNewValue = source[property];
+            const newValue = R.isString(dataSource)
+                ? (rawNewValue ?? "")
+                : R.isNumber(dataSource)
+                  ? (rawNewValue ?? 0)
+                  : (rawNewValue ?? {});
 
-        if (
-            (property === "tags" && (!R.isArray(newValue) || !arraysEqual(value, newValue))) ||
-            (property === "nodes" && (!R.isArray(newValue) || objectDifferentFrom(newValue, value))) ||
-            value !== newValue
-        )
-            return true;
+            if (dataSource !== newValue) return true;
+        }
     }
 
     return false;

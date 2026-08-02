@@ -34,7 +34,7 @@ class TriggerHook<TArgs extends Record<string, any> = Record<string, any>> {
 
     /**
      * @abstract
-     * This method is called during preparation before {@link TriggerHook#_enable} if is was previously enabled.
+     * This method is called during preparation before {@link TriggerHook#_enable} if it was previously enabled.
      */
     _disable() {
         throw MODULE.Error("'_disable' method not implemented.");
