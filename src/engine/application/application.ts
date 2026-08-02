@@ -54,7 +54,6 @@ class TriggerApplication {
     #moduleId: string;
     #moduleSources: TriggerDataInput[] = [];
     #nodes: Collection<string, typeof TriggerNode>;
-    #rawSettings?: TriggersSetting;
     #settingsBlueprintApplication!: typeof BlueprintApplication;
     #triggerEvents: Record<string, { eventId: string; data: TriggerData }[]> = {};
     #triggers: Record<string, TriggerData> = {};
@@ -338,15 +337,10 @@ class TriggerApplication {
         const settings = this.getTriggersSetting();
         if (!settings) return;
 
-        const previous = this.#rawSettings ?? { disabled: [], enabled: [], folders: {}, sources: [] };
+        const previousTriggers = this.#triggers;
 
-        // we remove triggers that are newly disabled or no longer enabled
-        const removedTriggers = [
-            ...diffStringArrays(settings.disabled, previous.disabled), // newly disabled
-            ...diffStringArrays(previous.enabled, settings.enabled), // previously enabled
-        ];
-
-        this.#triggers = R.omit(this.#triggers, removedTriggers);
+        this.#triggers = {};
+        this.#triggerEvents = {};
 
         // we add or update triggers only if needed
         const updatedTriggers: string[] = [];
@@ -360,10 +354,14 @@ class TriggerApplication {
         const allTriggerIds = allSources.map((source) => source.id);
 
         for (const source of allSources) {
-            const exist = this.#triggers[source.id] as TriggerData | undefined;
-            if (exist && !diffTriggers(exist, source)) continue;
+            const exist = previousTriggers[source.id] as TriggerData | undefined;
 
-            updatedTriggers.push(source.id);
+            if (exist) {
+                delete previousTriggers[source.id]; // the remaining IDs are of triggers that no longer exist
+                if (!diffTriggers(exist, source)) continue; // no check needed if no difference
+            }
+
+            updatedTriggers.push(source.id); // trigger has changed
 
             try {
                 const trigger = this.createTrigger(source);
@@ -379,7 +377,6 @@ class TriggerApplication {
             R.sortBy([R.prop("priority"), "desc"], (data) => allTriggerIds.indexOf(data.id)),
         );
 
-        this.#triggerEvents = {};
         const events: string[] = [];
         const otherNodes: string[] = [];
 
@@ -443,11 +440,9 @@ class TriggerApplication {
         // we refresh the app on this client if it is opened
         const blueprint = this.getMenuApplication()?.blueprint;
         if (blueprint) {
-            blueprint.resetTriggers(settings, removedTriggers, updatedTriggers);
+            blueprint.resetTriggers(settings, R.keys(previousTriggers), updatedTriggers);
             blueprint.draw({ forceComputeConnections: true, renderApplication: true });
         }
-
-        this.#rawSettings = foundry.utils.deepClone(settings);
     }
 
     addFile(path: string) {
@@ -796,10 +791,6 @@ class TriggerApplication {
             type: this.#settingsBlueprintApplication,
         });
     }
-}
-
-function diffStringArrays(original: string[], against: string[]): string[] {
-    return original.filter((entry) => !R.isIncludedIn(entry, against));
 }
 
 function objectDifferentFrom(obj: object, against: object): boolean {
