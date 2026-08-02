@@ -26,8 +26,8 @@ class NodeEntry<TValue extends unknown = unknown, TFieldSchema extends Record<st
         this.#parent = parent;
         this.#schema = entrySchema;
 
-        foundry.utils.deepFreeze(this.#field as any);
-        foundry.utils.deepFreeze(this.#schema);
+        // foundry.utils.deepFreeze(this.#field as any);
+        // foundry.utils.deepFreeze(this.#schema);
 
         // from private methods
         Object.defineProperties(
