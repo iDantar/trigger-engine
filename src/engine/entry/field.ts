@@ -17,8 +17,6 @@ class NodeField<TValue extends unknown = unknown, TFieldSchema extends Record<st
         this.#entry = parent as unknown as NodeEntry<TValue, TFieldSchema>;
         this.#options = options;
         this.#node = node;
-
-        foundry.utils.deepFreeze(this.#options);
     }
 
     /**

@@ -69,7 +69,7 @@ class PointInputElement extends foundry.applications.elements.AbstractFormInputE
         for (const key of ["x", "y"] as const) {
             const element = this.#inputElements[key];
 
-            element.addEventListener("blur", (event) => {
+            element.addEventListener("blur", () => {
                 this._value[key] = element.valueAsNumber;
 
                 requestAnimationFrame(() => {
@@ -79,7 +79,7 @@ class PointInputElement extends foundry.applications.elements.AbstractFormInputE
                 });
             });
 
-            element.addEventListener("focus", (event) => {
+            element.addEventListener("focus", () => {
                 element.select();
             });
 
