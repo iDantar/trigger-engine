@@ -368,11 +368,10 @@ class TriggerApplication {
                     continue; // no update needed if no difference
                 }
 
-                updatedTriggers.push(source.id); // trigger has changed
-
                 try {
                     const trigger = this.createTrigger(source);
                     if (trigger && !trigger.invalid) {
+                        updatedTriggers.push(source.id); // trigger has changed
                         this.#triggers[source.id] = trigger.data;
                     }
                 } catch (error) {}
@@ -647,7 +646,7 @@ class TriggerApplication {
     createTrigger(source: TriggerDataInput, open?: { locked?: boolean }): Trigger | null;
     createTrigger(source: TriggerDataInput, open?: { locked?: boolean }): OpenTrigger | Trigger | null {
         try {
-            const data = this.#triggers[source.id as string] ?? new TriggerData(source);
+            const data = new TriggerData(source);
             return open ? new OpenTrigger(this, data, open.locked) : new Trigger(this, data);
         } catch (error: any) {
             MODULE.error(`an error concurred while trying to create a Trigger.`, error);
