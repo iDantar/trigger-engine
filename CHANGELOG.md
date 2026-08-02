@@ -1,3 +1,9 @@
+# 1.25.0
+
+- add new `Toggle all triggers` button to triggers folder headers
+- fix some nonsense during the triggers preparation that caused a volley of small bugs here and there
+- fix not being ablme to input numbers in the `point` fields
+
 # 1.24.0
 
 - this release comes with even more performance boosts (don't close your eyes or you are gonna miss it!)
