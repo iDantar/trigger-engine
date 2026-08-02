@@ -400,26 +400,30 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         localize.info("save-triggers.saved");
     }
 
-    isEnabled({ id, locked }: OpenTrigger): boolean {
+    isEnabled({ id, locked }: MaybeTrigger): boolean {
         return locked ? this.#enabledIds.has(id) : !this.#disabledIds.has(id);
     }
 
-    enableTrigger(trigger: OpenTrigger, enabled: boolean) {
-        if (enabled) {
-            if (trigger.locked) {
-                this.#enabledIds.add(trigger.id);
-            } else {
-                this.#disabledIds.delete(trigger.id);
-            }
-        } else {
-            if (trigger.locked) {
-                this.#enabledIds.delete(trigger.id);
-            } else {
-                this.#disabledIds.add(trigger.id);
-            }
-        }
+    enableTrigger(trigger: OpenTrigger | OpenTrigger[], enabled: boolean) {
+        const triggers = R.isArray(trigger) ? trigger : [trigger];
 
-        trigger.setUpdated();
+        for (const trigger of triggers) {
+            if (enabled) {
+                if (trigger.locked) {
+                    this.#enabledIds.add(trigger.id);
+                } else {
+                    this.#disabledIds.delete(trigger.id);
+                }
+            } else {
+                if (trigger.locked) {
+                    this.#enabledIds.delete(trigger.id);
+                } else {
+                    this.#disabledIds.add(trigger.id);
+                }
+            }
+
+            trigger.setUpdated();
+        }
     }
 
     getFolder({ folder, id, locked }: MaybeTrigger): string {

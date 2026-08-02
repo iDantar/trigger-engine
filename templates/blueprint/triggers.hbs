@@ -36,7 +36,7 @@
         {{#each groups as |group|}}
         {{!-- folder header --}}
         {{#if group.folder}}
-        <div class="header sub folder" data-folder="{{group.folder}}">
+        <div class="header sub folder" data-folder="{{group.folder}}" data-checked="{{group.checked}}">
             <div class="title">
                 <a class="label" data-action="toggle-folder">
                     <i class="fa-solid fa-folder{{ifThen group.expanded '-open' ''}} fa-fw"></i>
@@ -44,6 +44,12 @@
                 </a>
             </div>
             <div class="controls">
+                <a class="folder-toggle"
+                   data-action="toggle-triggers" {{{@root.i18n.tooltip 'toggle' }}}>
+                    <i class="fa-regular fa-square-check checked"></i>
+                    <i class="fa-regular fa-square-minus partial"></i>
+                    <i class="fa-regular fa-square unchecked"></i>
+                </a>
                 <a data-action="create-trigger" {{{@root.i18n.tooltip 'create' }}}>
                     <i class="fa-solid fa-plus-large"></i>
                 </a>

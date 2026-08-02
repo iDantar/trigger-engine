@@ -96,6 +96,7 @@
                 "tags": {
                     "placeholder": "Trigger Tags"
                 },
+                "toggle": "Toggle all triggers",
                 "updated": "This trigger has been modified since last save"
             },
             "variable": {

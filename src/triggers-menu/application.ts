@@ -357,6 +357,19 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
                 const current = getSetting("stretched");
                 return setSetting("stretched", !current);
             }
+
+            case "toggle-triggers": {
+                const element = htmlClosest(target, "[data-folder]");
+                if (!element) return;
+
+                const { checked, folder } = element.dataset as { checked: TriggersGroupCheckedType; folder: string };
+                const triggers = this.blueprint.triggers.filter((trigger) => trigger.folder === folder);
+
+                this.blueprint.enableTrigger(triggers, checked !== "checked");
+                this.#folders.add(folder);
+
+                return this.render();
+            }
         }
     }
 
@@ -707,19 +720,43 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
         };
     }
 
-    #prepareTriggersGroups<T extends MaybeTrigger>(
-        triggersData: T[],
-    ): { expanded: boolean; folder: string; triggers: NonEmptyArray<T> }[] {
+    #prepareTriggersGroups<T extends MaybeTrigger>(triggersData: T[]): TriggersGroup<T>[] {
         return R.pipe(
             triggersData,
             R.groupBy((trigger) => this.blueprint.getFolder(trigger)),
             R.entries(),
             R.filter(([_folder, triggers]) => triggers.length > 0),
             R.sortBy(([folder]) => folder),
-            R.map(([folder, triggers]) => {
-                return { expanded: !folder || this.#folders.has(folder), folder, triggers };
+            R.map(([folder, triggers]): TriggersGroup<T> => {
+                const checked = this.#testFolderChecked(triggers);
+                const expanded = !folder || this.#folders.has(folder);
+
+                return { checked, expanded, folder, triggers };
             }),
         );
+    }
+
+    #testFolderChecked(triggers: NonEmptyArray<MaybeTrigger>): TriggersGroupCheckedType {
+        let hasEnabled = 0;
+
+        for (let i = 0; i < triggers.length; i++) {
+            const trigger = triggers[i];
+            const enabled = this.blueprint.isEnabled(trigger);
+
+            if (hasEnabled && !enabled) {
+                return "partial"; // we know we have one enabled and one not
+            }
+
+            if (i !== 0 && !hasEnabled && enabled) {
+                return "partial"; // same as above
+            }
+
+            if (enabled) {
+                hasEnabled++;
+            }
+        }
+
+        return hasEnabled === triggers.length ? "checked" : "unchecked";
     }
 
     #prepareTriggersContext(_options: BlueprintRenderOptions): TriggersContext {
@@ -921,7 +958,8 @@ type EventAction =
     | "toggle-description"
     | "toggle-enabled"
     | "toggle-folder"
-    | "toggle-stretch";
+    | "toggle-stretch"
+    | "toggle-triggers";
 
 type BlueprintContext = TriggersContext | TriggerContext;
 
@@ -960,9 +998,13 @@ type TriggersContext = fa.ApplicationRenderContext & {
     updated: boolean;
 };
 
-type TriggersGroup = {
+type TriggersGroupCheckedType = "checked" | "partial" | "unchecked";
+
+type TriggersGroup<T extends MaybeTrigger = MaybeTrigger> = {
+    checked: TriggersGroupCheckedType;
+    expanded: boolean;
     folder: string;
-    triggers: OpenTrigger[];
+    triggers: NonEmptyArray<T>;
 };
 
 type BlueprintRenderOptions = fa.ApplicationRenderOptions & {
