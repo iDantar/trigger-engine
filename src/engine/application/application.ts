@@ -368,10 +368,11 @@ class TriggerApplication {
                     continue; // no update needed if no difference
                 }
 
+                updatedTriggers.push(source.id); // trigger has changed
+
                 try {
                     const trigger = this.createTrigger(source);
                     if (trigger && !trigger.invalid) {
-                        updatedTriggers.push(source.id); // trigger has changed
                         this.#triggers[source.id] = trigger.data;
                     }
                 } catch (error) {}
@@ -444,7 +445,7 @@ class TriggerApplication {
         // we refresh the app on this client if it is opened
         const blueprint = this.getMenuApplication()?.blueprint;
         if (blueprint) {
-            blueprint.resetTriggers(settings, R.keys(previousTriggers), updatedTriggers);
+            blueprint.resetTriggers(foundry.utils.deepClone(settings), R.keys(previousTriggers), updatedTriggers);
             blueprint.draw({ forceComputeConnections: true, renderApplication: true });
         }
     }
