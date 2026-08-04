@@ -9,7 +9,7 @@ import {
     descriptionStates,
     getDescriptionData,
 } from "engine";
-import { localize } from "foundry-helpers";
+import { localize, R } from "foundry-helpers";
 
 class FormatTextLogicNode extends BaseLogicNode<
     "out",
@@ -32,7 +32,9 @@ class FormatTextLogicNode extends BaseLogicNode<
     }
 
     static get defineInputs(): BuiltinsInputEntry[] {
-        return descriptionSchemas(localize.path("builtins.shared.variables.tooltip"));
+        const inputs = descriptionSchemas(localize.path("builtins.shared.variables.tooltip"));
+        delete inputs.at(-1)?.tooltip;
+        return inputs;
     }
 
     static get defineOutputs(): BuiltinsOutputEntry[] {
@@ -57,14 +59,20 @@ class FormatTextLogicNode extends BaseLogicNode<
         const { content, key, plain } = await getDescriptionData.call(this);
         const variables = await this.getCustomInputs("variable");
 
-        let result = key ? game.i18n.localize(key) : (plain ?? content ?? "");
+        if (key) {
+            const data = R.pullObject(variables, R.prop("label"), R.prop("value"));
+            const result = game.i18n.format(key, data);
+            this.setOutputValue("result", result);
+        } else {
+            let result = plain ?? content ?? "";
 
-        for (const { label, value } of variables) {
-            const regex = new RegExp(`@${label}`, "gm");
-            result = result.replace(regex, value);
+            for (const { label, value } of variables) {
+                const regex = new RegExp(`@${label}`, "gm");
+                result = result.replace(regex, value);
+            }
+
+            this.setOutputValue("result", result);
         }
-
-        this.setOutputValue("result", result);
 
         return this.executeNext("out");
     }

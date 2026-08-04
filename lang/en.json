@@ -10,7 +10,8 @@
     },
     "trigger-engine": {
         "application": {
-            "await-modules": "Modules Triggers are finishing to be prepared, just wait a second please."
+            "await-modules": "Modules Triggers are finishing to be prepared, just wait a second please.",
+            "test-format": "This is a test that uses the variable {test}"
         },
         "blueprint": {
             "entry": {
