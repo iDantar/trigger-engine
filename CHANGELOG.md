@@ -1,3 +1,7 @@
+# 1.25.1
+
+- fix the `Localization` state of the `Format Text` logic node not using the moustache (`{variable}`) format and still using the `@variable` like the other states
+
 # 1.25.0
 
 - add new `Toggle all triggers` button to triggers folder headers

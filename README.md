@@ -23,7 +23,7 @@ The module is bundled with already created (and system agnostic) nodes, entries,
 
 ### Pathfinder/Starfinder Second Edition
 
-The module is bundled with a fully kitted application for those modules, it offers a lot of automation that the default system doesn't provide.
+The module is bundled with a fully kitted application for those systems, it offers a lot of automation that the default system doesn't provide.
 
 ### Free Application
 
