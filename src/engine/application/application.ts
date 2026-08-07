@@ -179,6 +179,20 @@ class TriggerApplication {
         };
     }
 
+    static registerGeneric() {
+        if (this.instances.size > 1) return;
+        if (this.instances.size === 1 && !this.getApplication("trigger-animations", "anim-trigger")) return;
+
+        this.register(MODULE.id, `__${game.system.id}__`, {
+            builtins: true,
+            setting: {
+                label: MODULE.path("__generic__.label"),
+                hint: MODULE.path("__generic__.hint"),
+                name: game.system.title,
+            },
+        });
+    }
+
     static registerNodes(moduleId: string, applicationId: string, nodes: (typeof TriggerNode)[]) {
         const applicationKey = this.getApplicationKey(moduleId, applicationId);
         const app = applicationKey ? this.#instances.get(applicationKey) : undefined;

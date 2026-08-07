@@ -42,6 +42,9 @@ Hooks.once("init", async () => {
     // we allow third party to register their own application
     Hooks.callAll("triggerEngine.registerApplication", TriggerApplication.register.bind(TriggerApplication), builtIns);
 
+    // if there is no application in this world (excluding trigger-animations), then let's create a generic one for the system
+    TriggerApplication.registerGeneric();
+
     // we allow third party to register extra nodes for an application
     Hooks.callAll("triggerEngine.registerNodes", TriggerApplication.registerNodes.bind(TriggerApplication));
 
