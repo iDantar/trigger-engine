@@ -1,3 +1,9 @@
+# 1.26.0
+
+- now generate a generic triggers application to be used in the current system
+  - the application includes all the system agnostic's hooks, nodes, entries and convertors
+  - the application will only show up if no other application (non including trigger-animations) is registered in your world
+
 # 1.25.1
 
 - fix the `Localization` state of the `Format Text` logic node not using the moustache (`{variable}`) format and still using the `@variable` like the other states
