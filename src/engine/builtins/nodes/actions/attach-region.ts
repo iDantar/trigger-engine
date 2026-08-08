@@ -1,6 +1,6 @@
 import { IconObject } from "_zod";
 import { BaseActionNode, BuiltinsInputEntry, moveRegionToPosition } from "engine";
-import { RegionSource } from "foundry-helpers";
+import { RegionDocumentPF2e, RegionSource } from "foundry-helpers";
 
 class AttachRegionActionNode extends BaseActionNode<"out", Inputs, never, never, never, State> {
     static get type(): "attach-region" {
@@ -82,7 +82,7 @@ class AttachRegionActionNode extends BaseActionNode<"out", Inputs, never, never,
 
 type Inputs = {
     center: boolean;
-    region?: RegionDocument;
+    region?: RegionDocumentPF2e;
     target?: TargetDocuments;
 };
 
