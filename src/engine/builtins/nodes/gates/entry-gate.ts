@@ -1,13 +1,17 @@
 import { IconObject } from "_zod";
-import { ENTRY_GATE_TYPE, GATE_CATEGORY, TriggerNode } from "engine";
+import { BridgeSchemaInput, ENTRY_GATE_TYPE, GATE_CATEGORY, TriggerNode } from "engine";
 
-class TriggerGateEntry extends TriggerNode<"out", never, never, "entry"> {
+class TriggerGateEntry extends TriggerNode<"out" | "return", never, never, "entry"> {
     static get category(): string {
         return GATE_CATEGORY;
     }
 
     static get type(): string {
         return ENTRY_GATE_TYPE;
+    }
+
+    static get defineOuts(): BridgeSchemaInput[] | null {
+        return [{ key: "out" }, { key: "return" }];
     }
 
     get headerColor(): ColorSource {
@@ -23,7 +27,8 @@ class TriggerGateEntry extends TriggerNode<"out", never, never, "entry"> {
 
     async _execute(): Promise<boolean> {
         const values = await this.getCustomInputsValues("entry");
-        return this.executeNext("out", values);
+        const keepExecuting = await this.executeNext("out", values);
+        return keepExecuting ? this.executeNext("return") : true;
     }
 }
 

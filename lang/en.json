@@ -251,6 +251,9 @@
             "node": {
                 "__gate__": {
                     "__gate_entry__": {
+                        "outs": {
+                            "return": "Out"
+                        },
                         "subtitle": "Entry Gate"
                     },
                     "__gate_exit__": {

@@ -681,9 +681,9 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
         const gates = R.map(
             this.blueprint.nodes.filter((node) => isGateExitNode(node)),
             (node): PreparedGate => {
-                const hasEntries = this.blueprint.nodes.some(
-                    (other) => isGateEntryNode(other) && other.gateId === node.id,
-                );
+                const hasEntries = this.blueprint.nodes.some((other) => {
+                    return isGateEntryNode(other) && other.gateId === node.id;
+                });
                 return { hasEntries, node };
             },
         );

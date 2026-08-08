@@ -655,14 +655,16 @@ class BlueprintNode extends PIXI.Container {
         const entries = this.#node.entries;
 
         const ins = Number(!!entries.in);
-        const outs = isGateEntryNode(this.#node) ? [] : entries.outs.contents;
+        // we don't want to display entry gates out
+        const outs = isGateEntryNode(this.#node) ? entries.outs.filter((x) => x.key !== "out") : entries.outs.contents;
 
         const [inputs, outputs] = R.pipe(
             ["inputs", "outputs"] as const,
             R.map((category) => {
                 if (
-                    (category === "inputs" && // both getters & exit gates don't have inputs
-                        (isGateExitNode(this.#node) || isVariableGetterNode(this.#node))) ||
+                    // both getters & exit gates don't have inputs
+                    (category === "inputs" && (isGateExitNode(this.#node) || isVariableGetterNode(this.#node))) ||
+                    // entry gates don't have outputs
                     (category === "outputs" && isGateEntryNode(this.#node))
                 ) {
                     return [];
