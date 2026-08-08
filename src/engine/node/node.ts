@@ -768,7 +768,8 @@ class TriggerNode<
      *
      * @see {@link TriggerNode#_execute}
      */
-    async getInputValue<K extends keyof TInputs>(key: K): Promise<any> {
+    async getInputValue<K extends keyof TInputs>(key: K): Promise<TInputs[K]>;
+    async getInputValue(key: string) {
         const input = this.#inputs.get(key as string);
         if (!input) return;
 
