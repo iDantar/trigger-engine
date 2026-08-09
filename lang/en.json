@@ -688,6 +688,20 @@
                     "scene-targets": {
                         "title": "Scene Tokens"
                     },
+                    "text-value": {
+                        "inputs": {
+                            "content": {
+                                "title": "Enriched Text"
+                            },
+                            "plain": {
+                                "title": "Text"
+                            }
+                        },
+                        "states": {
+                            "description": "Enriched Text"
+                        },
+                        "title": "Cached Text"
+                    },
                     "user-value": {
                         "inputs": {
                             "id": {
