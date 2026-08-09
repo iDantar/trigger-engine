@@ -42,7 +42,6 @@ abstract class zDocument<TSchema extends zDocumentSource = zDocumentSource> {
 
     _initialize() {
         try {
-            const data = this._schema.parse(this._source);
             const collections = (this.constructor as typeof zDocument).collections;
 
             for (const [key, field] of R.entries(this._schema.shape)) {
@@ -59,13 +58,14 @@ abstract class zDocument<TSchema extends zDocumentSource = zDocumentSource> {
                     if (key in this) continue;
 
                     Object.defineProperty(this, key, {
-                        value: data[key],
+                        value: field.parse(this._source[key]),
                         writable: false,
                     });
                 } else {
+                    const value = field.parse(this._source[key]);
                     Object.defineProperty(this, key, {
                         get() {
-                            return data[key];
+                            return value;
                         },
                         set() {},
                         configurable: true,
