@@ -38,7 +38,15 @@ class PointEntry extends BuiltInNodeEntry<Point, PointFieldSchema> {
     }
 
     generateTooltip(label: string, isConnected: boolean): string | undefined {
-        return super.generateTooltip(label, isConnected) ?? this.localize(this.category, this.key, "title");
+        if (this.tooltip === false) return;
+
+        const tooltip = super.generateTooltip(label, isConnected);
+
+        if (this.category === "outputs") {
+            return tooltip;
+        }
+
+        return tooltip ? `<div class="title">${label}</div><hr>${tooltip}` : label;
     }
 
     processValue(value: Point): Point {
