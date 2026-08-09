@@ -1,7 +1,7 @@
 import { BuiltinsOutputEntry } from "engine";
 import { BaseValueNode } from ".";
 
-class CurrentCombatantValueNode extends BaseValueNode {
+class CurrentCombatantValueNode extends BaseValueNode<TargetDocuments | undefined> {
     static get type(): "current-combatant" {
         return "current-combatant";
     }
@@ -14,7 +14,7 @@ class CurrentCombatantValueNode extends BaseValueNode {
         return [{ key: "combatant", type: "target" }];
     }
 
-    async _query(): Promise<TargetDocuments | undefined> {
+    async _getValue(): Promise<TargetDocuments | undefined> {
         const { actor, token } = game.combat?.combatant ?? {};
         return actor ? { actor, token } : undefined;
     }

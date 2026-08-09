@@ -10,9 +10,7 @@ import {
     getLocalItemFromSourceUuid,
 } from "..";
 
-class ItemValueNode extends BaseValueNode<DoubleUuidInputs> {
-    #item?: ItemPF2e | null;
-
+class ItemValueNode extends BaseValueNode<ItemPF2e | undefined, DoubleUuidInputs> {
     static get type(): "item-value" {
         return "item-value";
     }
@@ -37,12 +35,10 @@ class ItemValueNode extends BaseValueNode<DoubleUuidInputs> {
         return getIconFromDoubleUuid.call(this, null);
     }
 
-    async _query(): Promise<ItemPF2e | undefined> {
-        if (this.#item === undefined) {
-            const uuid = await getDoubleUuidValue.call(this);
-            this.#item = await getDocumentFromUUID("Item", uuid);
-        }
-        return this.#item ?? undefined;
+    async _getValue(): Promise<ItemPF2e | undefined> {
+        const uuid = await getDoubleUuidValue.call(this);
+        const item = await getDocumentFromUUID("Item", uuid);
+        return item ?? undefined;
     }
 }
 

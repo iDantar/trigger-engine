@@ -1,7 +1,7 @@
 import { BuiltinsInputEntry, BuiltinsOutputEntry, SelectField, SelectFieldOption } from "engine";
 import { BaseValueNode } from ".";
 
-class UserValueNode extends BaseValueNode<Inputs> {
+class UserValueNode extends BaseValueNode<User | undefined, Inputs> {
     static get type(): "user-value" {
         return "user-value";
     }
@@ -37,7 +37,7 @@ class UserValueNode extends BaseValueNode<Inputs> {
         return [{ key: "user", type: "user" }];
     }
 
-    async _query(): Promise<User | undefined> {
+    async _getValue(): Promise<User | undefined> {
         const id = await this.getInputValue("id");
 
         switch (id) {

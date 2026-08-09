@@ -11,7 +11,7 @@ const DEFAULT_CALLBACK = `/**
  */
 return true;`;
 
-class SceneTargetsValueNode extends BaseValueNode<Inputs> {
+class SceneTargetsValueNode extends BaseValueNode<TargetDocuments[], Inputs> {
     static get type(): "scene-targets" {
         return "scene-targets";
     }
@@ -37,7 +37,7 @@ class SceneTargetsValueNode extends BaseValueNode<Inputs> {
         return [{ key: "targets", type: "target", isArray: true }];
     }
 
-    async _query(): Promise<TargetDocuments[]> {
+    async _getValue(): Promise<TargetDocuments[]> {
         const code = (await this.getInputValue("callback")) || "return true;";
         const scene = (this.sceneContext ?? game.scenes.active) as ScenePF2e;
         const targets = scene?.tokens.map((token): TargetDocuments | undefined => {

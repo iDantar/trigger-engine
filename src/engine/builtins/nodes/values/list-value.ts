@@ -2,9 +2,7 @@ import { BuiltinsInputEntry, BuiltinsOutputEntry } from "engine";
 import { BaseValueNode } from ".";
 import { splitListString } from "foundry-helpers";
 
-class ListValueNode extends BaseValueNode<{ entry: string }> {
-    #cached?: string[];
-
+class ListValueNode extends BaseValueNode<string[], { entry: string }> {
     static get type(): "list-value" {
         return "list-value";
     }
@@ -17,8 +15,9 @@ class ListValueNode extends BaseValueNode<{ entry: string }> {
         return [{ key: "list", type: "text", isArray: true }];
     }
 
-    async _query(): Promise<string[]> {
-        return (this.#cached ??= splitListString(await this.getInputValue("entry")));
+    async _getValue(): Promise<string[]> {
+        const entry = await this.getInputValue("entry");
+        return splitListString(entry);
     }
 }
 

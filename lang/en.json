@@ -671,7 +671,7 @@
                 },
                 "value": {
                     "current-combatant": {
-                        "title": "Current Combatant"
+                        "title": "Cached Current Combatant"
                     },
                     "list-value": {
                         "inputs": {
@@ -686,7 +686,7 @@
                         "title": "Cached Number"
                     },
                     "scene-targets": {
-                        "title": "Scene Tokens"
+                        "title": "Cached Scene Tokens"
                     },
                     "text-value": {
                         "inputs": {
@@ -714,7 +714,7 @@
                                 }
                             }
                         },
-                        "title": "World User"
+                        "title": "Cached World User"
                     }
                 }
             },

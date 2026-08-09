@@ -10,9 +10,7 @@ import {
 } from "engine";
 import { BaseValueNode } from ".";
 
-class TextValueNode extends BaseValueNode<DescriptionInputs, DescriptionState> {
-    #cached?: string;
-
+class TextValueNode extends BaseValueNode<string, DescriptionInputs, DescriptionState> {
     static get type(): "text-value" {
         return "text-value";
     }
@@ -29,8 +27,9 @@ class TextValueNode extends BaseValueNode<DescriptionInputs, DescriptionState> {
         return [{ key: "value", type: "text" }];
     }
 
-    async _query(): Promise<string> {
-        return (this.#cached ??= await localizeKeyOrDescription(await getDescriptionData.call(this)));
+    async _getValue(): Promise<string> {
+        const descriptionData = await getDescriptionData.call(this);
+        return localizeKeyOrDescription(descriptionData);
     }
 }
 
