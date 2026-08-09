@@ -4,7 +4,10 @@ import {
     BaseCustomEntryDataSource,
     BaseCustomEntrySchema,
     BaseCustomSchema,
+    CONSOLE_LOG,
     ConnectionId,
+    ENTRY_GATE_TYPE,
+    EXIT_GATE_TYPE,
     EntryCategory,
     EntryId,
     GATE_CATEGORY,
@@ -15,11 +18,10 @@ import {
     OpenTrigger,
     OpenTriggerNode,
     PreciseEntryCategory,
+    RETURN_GATE_TYPE,
     TriggerNode,
     VARIABLE_CATEGORY,
     isConnectionId,
-    isGateEntryNode,
-    isGateExitNode,
     isOppositeConnection,
     isVariableGetterNode,
     zCustomInputData,
@@ -131,7 +133,11 @@ class BlueprintNode extends PIXI.Container {
     }
 
     get gateId(): string | undefined {
-        return isGateExitNode(this) ? this.#node.id : this.#node.exitGate?.id;
+        return this.isExitGate ? this.#node.id : this.#node.exitGate?.id;
+    }
+
+    get exitGate(): BlueprintNode | undefined {
+        return this.#node.exitGate ? this.parent.get(this.#node.exitGate.id) : undefined;
     }
 
     get variableId(): ConnectionId | undefined {
@@ -148,6 +154,18 @@ class BlueprintNode extends PIXI.Container {
 
     get isGate(): boolean {
         return this.category === GATE_CATEGORY;
+    }
+
+    get isEntryGate(): boolean {
+        return this.type === ENTRY_GATE_TYPE;
+    }
+
+    get isExitGate(): boolean {
+        return this.type === EXIT_GATE_TYPE;
+    }
+
+    get isReturnGate(): boolean {
+        return this.type === RETURN_GATE_TYPE;
     }
 
     get isVariable(): boolean {
@@ -655,17 +673,20 @@ class BlueprintNode extends PIXI.Container {
         const entries = this.#node.entries;
 
         const ins = Number(!!entries.in);
-        // we don't want to display entry gates out
-        const outs = isGateEntryNode(this.#node) ? entries.outs.filter((x) => x.key !== "out") : entries.outs.contents;
+
+        const outs = this.isEntryGate // we don't want to display entry gates 'out'
+            ? entries.outs.filter((x) => x.key !== "out")
+            : this.isReturnGate // we don't want to display return gates outs
+              ? []
+              : entries.outs.contents;
 
         const [inputs, outputs] = R.pipe(
             ["inputs", "outputs"] as const,
             R.map((category) => {
                 if (
+                    category === "inputs" &&
                     // both getters & exit gates don't have inputs
-                    (category === "inputs" && (isGateExitNode(this.#node) || isVariableGetterNode(this.#node))) ||
-                    // entry gates don't have outputs
-                    (category === "outputs" && isGateEntryNode(this.#node))
+                    (this.isExitGate || isVariableGetterNode(this.#node))
                 ) {
                     return [];
                 }
@@ -735,7 +756,7 @@ class BlueprintNode extends PIXI.Container {
 
         // we process all inputs first to make layout computation easier
 
-        if (entries.in && !isGateExitNode(this.#node)) {
+        if (entries.in && !this.isExitGate) {
             this.#in = new BlueprintBridgeEntry(this, "inputs", entries.in);
             this.#entries.push(this.#in);
 
@@ -981,14 +1002,16 @@ class BlueprintNode extends PIXI.Container {
     refresh({
         forceComputeConnections,
         renderApplication,
+        selectNodes,
     }: {
         forceComputeConnections?: boolean;
         renderApplication?: boolean;
+        selectNodes?: string[];
     } = {}) {
         this.trigger.refreshNode(this.id);
 
         // we need to refresh all the entry-gates as well
-        if (isGateExitNode(this)) {
+        if (this.isExitGate) {
             for (const node of this.parent.getGateEntries(this.id)) {
                 this.trigger.refreshNode(node.id);
             }
@@ -997,7 +1020,7 @@ class BlueprintNode extends PIXI.Container {
         this.blueprint.draw({
             forceComputeConnections,
             renderApplication,
-            selectNodes: [this.id],
+            selectNodes: selectNodes ?? [this.id],
         });
     }
 
@@ -1179,7 +1202,10 @@ class BlueprintNode extends PIXI.Container {
         const entry = parser.safeParse(entrySchema)?.data;
         if (!entry) return;
 
-        this.update({
+        // if we are a return gate, we actually update the exit gate
+        const updater = (this.isReturnGate && this.exitGate) || this;
+
+        updater.update({
             custom: {
                 [category]: {
                     [entry.id]: entry,
@@ -1187,7 +1213,7 @@ class BlueprintNode extends PIXI.Container {
             },
         });
 
-        this.refresh();
+        updater.refresh({ selectNodes: [this.id] });
     }
 
     async #onNodeContextMenu(event: PIXI.FederatedPointerEvent) {
@@ -1223,9 +1249,14 @@ class BlueprintNode extends PIXI.Container {
             );
         }
 
+        const isExitGate = this.isExitGate;
+
         // custom entries
-        if (!locked && !isGateEntryNode(this)) {
+        if (!locked && !this.isEntryGate) {
             for (const category of R.keys(BlueprintNode.customCategoryParsers)) {
+                // we shouldn't display exit gate custom inputs as they are used on the return gate
+                if (isExitGate && category !== "outputs") continue;
+
                 const schemas = this.getCustomCategorySchemas(category);
 
                 for (const schema of schemas) {
@@ -1265,7 +1296,15 @@ class BlueprintNode extends PIXI.Container {
                 },
             },
             {
-                label: localize.path("builtins.node.action.console-log.title"),
+                label: localize.path("builtins.node", GATE_CATEGORY, "return"),
+                icon: `<i class="fa-solid fa-plug-circle-xmark"></i>`,
+                visible: !locked && isExitGate,
+                onClick: () => {
+                    this.#createReturnGate();
+                },
+            },
+            {
+                label: localize.path("builtins.node.action", CONSOLE_LOG, "title"),
                 icon: `<i class="fa-solid fa-terminal"></i>`,
                 visible: !locked && selected.length === 1 && this.outputs.size > 0,
                 onClick: () => {
@@ -1275,7 +1314,7 @@ class BlueprintNode extends PIXI.Container {
             {
                 label: localize.path(`blueprint.node.edit`),
                 icon: `<i class="fa-solid fa-pen-to-square"></i>`,
-                visible: !locked && isGateExitNode(this),
+                visible: !locked && isExitGate,
                 onClick: () => {
                     this.edit();
                 },
@@ -1294,12 +1333,35 @@ class BlueprintNode extends PIXI.Container {
         this.createContextMenu(event, entries);
     }
 
+    #createReturnGate() {
+        const node = this.trigger.addNode({
+            type: RETURN_GATE_TYPE,
+            position: addPoints(this.#node.data.position, { x: 0, y: this.height + 5 }),
+            // custom: {
+            //     inputs: foundry.utils.deepClone(this.#node.data.custom.inputs),
+            // },
+            outs: {
+                out: {
+                    connection: `${this.id}:ins:in`,
+                },
+            },
+        });
+
+        if (node) {
+            this.blueprint.draw({
+                forceComputeConnections: true,
+                renderApplication: true,
+                selectNodes: [node.id],
+            });
+        }
+    }
+
     #createConsoleLogNode() {
         const hasOut = !!this.outs.get("out")?.connection;
         const offset = hasOut ? { x: 100, y: 50 } : { x: this.width + 50, y: 0 };
 
         const source: NodeDataOutput = {
-            type: "console-log",
+            type: CONSOLE_LOG,
             position: addPoints(this.#node.data.position, offset),
             id: foundry.utils.randomID(),
             custom: {
@@ -1327,7 +1389,8 @@ class BlueprintNode extends PIXI.Container {
             };
         }
 
-        this.trigger.addNode(source);
+        const node = this.trigger.addNode(source);
+        if (!node) return;
 
         if (!hasOut) {
             this.update({
@@ -1342,7 +1405,7 @@ class BlueprintNode extends PIXI.Container {
         this.blueprint.draw({
             forceComputeConnections: true,
             renderApplication: true,
-            selectNodes: [source.id],
+            selectNodes: [node.id],
         });
     }
 }

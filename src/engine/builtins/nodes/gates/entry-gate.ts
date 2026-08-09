@@ -1,7 +1,17 @@
 import { IconObject } from "_zod";
 import { BridgeSchemaInput, ENTRY_GATE_TYPE, GATE_CATEGORY, TriggerNode } from "engine";
 
-class TriggerGateEntry extends TriggerNode<"out" | "return", never, never, "entry"> {
+class GateEntryReturn extends Error {
+    values: any[];
+
+    constructor(values: any[]) {
+        super();
+        this.values = values;
+        this.name = "GateEntryReturn";
+    }
+}
+
+class TriggerGateEntry extends TriggerNode<"out" | "return", never, never, "entry", "return"> {
     static get category(): string {
         return GATE_CATEGORY;
     }
@@ -27,8 +37,18 @@ class TriggerGateEntry extends TriggerNode<"out" | "return", never, never, "entr
 
     async _execute(): Promise<boolean> {
         const values = await this.getCustomInputsValues("entry");
-        const keepExecuting = await this.executeNext("out", values);
-        return keepExecuting ? this.executeNext("return") : true;
+
+        try {
+            const keepExecuting = await this.executeNext("out", values);
+            return keepExecuting ? this.executeNext("return") : true;
+        } catch (returned: any) {
+            if (returned instanceof GateEntryReturn) {
+                this.setCustomOutputValues("return", returned.values);
+                return this.executeNext("return");
+            } else {
+                throw returned;
+            }
+        }
     }
 }
 
@@ -36,4 +56,4 @@ function isGateEntryNode(node: { type: string }): boolean {
     return node.type === ENTRY_GATE_TYPE;
 }
 
-export { isGateEntryNode, TriggerGateEntry };
+export { GateEntryReturn, isGateEntryNode, TriggerGateEntry };

@@ -3,6 +3,7 @@ import {
     EntryId,
     isGateEntryNode,
     isGateExitNode,
+    isGateReturnNode,
     NodeDataOutput,
     OpenTriggerNode,
     OPPOSITE_CONNECTION_CATEGORY,
@@ -27,8 +28,11 @@ class BlueprintNodesLayer extends PIXI.Container<BlueprintNode> {
         return this.#nodes.filter((node) => node.selected);
     }
 
-    getGateEntries(exitId: string): BlueprintNode[] {
-        return this.filter((node) => isGateEntryNode(node) && node.gateId === exitId);
+    getGateEntries(exitId: string, skipReturn = false): BlueprintNode[] {
+        const filter: (node: BlueprintNode) => boolean = skipReturn
+            ? (node) => isGateEntryNode(node)
+            : (node) => isGateEntryNode(node) || isGateReturnNode(node);
+        return this.filter((node) => filter(node) && node.gateId === exitId);
     }
 
     getVariables(id: ConnectionId): BlueprintNode[] {

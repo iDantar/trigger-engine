@@ -11,6 +11,10 @@ class TriggerGateExit extends TriggerNode<"out", never, never, never, "entry"> {
         return EXIT_GATE_TYPE;
     }
 
+    static get defineCustomInputs(): BuiltinsCustomEntry[] {
+        return [{ array: true, slug: "return" }];
+    }
+
     static get defineCustomOutputs(): BuiltinsCustomEntry[] {
         return [{ array: true, slug: "entry" }];
     }
@@ -28,8 +32,8 @@ class TriggerGateExit extends TriggerNode<"out", never, never, never, "entry"> {
     }
 
     _execute(values?: any[]): Promise<boolean> {
-        values = R.isArray(values) ? values : [];
-        this.setCustomOutputValues("entry", foundry.utils.deepClone(values));
+        const cloned = foundry.utils.deepClone(R.isArray(values) ? values : []);
+        this.setCustomOutputValues("entry", cloned);
         return this.executeNext("out");
     }
 }
@@ -38,4 +42,4 @@ function isGateExitNode(node: { type: string }): boolean {
     return node.type === EXIT_GATE_TYPE;
 }
 
-export { TriggerGateExit, isGateExitNode };
+export { isGateExitNode, TriggerGateExit };

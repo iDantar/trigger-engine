@@ -315,7 +315,7 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
 
             case "tab-gate": {
                 const nodeId = htmlClosest(target, "[data-node-id]")?.dataset.nodeId ?? "";
-                const nodes = this.blueprint.nodes.getGateEntries(nodeId);
+                const nodes = this.blueprint.nodes.getGateEntries(nodeId, true);
                 return this.#tabNode(nodes);
             }
 

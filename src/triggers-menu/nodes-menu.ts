@@ -235,9 +235,10 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
         let otherIdSuffix: EntryIdSuffix | undefined;
 
         const newSource: NodeDataInput = {
-            custom: {
-                inputs: foundry.utils.deepClone(exitNode.data.custom.outputs),
-            },
+            // custom: {
+            //     inputs: foundry.utils.deepClone(exitNode.data.custom.outputs),
+            //     outputs: foundry.utils.deepClone(exitNode.data.custom.inputs),
+            // },
             outs: {
                 out: {
                     connection: `${exitNode.id}:ins:in`,

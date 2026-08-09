@@ -1,5 +1,7 @@
 import {
+    InputEntrySchema,
     isGateEntryNode,
+    isGateReturnNode,
     isVariableGetterNode,
     NodeBridge,
     OpenNodeEntry,
@@ -7,7 +9,7 @@ import {
     OutputEntrySchema,
     Trigger,
 } from "engine";
-import { getOutputsSchemas, NodeData, TriggerNode } from ".";
+import { getInputsSchemas, getOutputsSchemas, NodeData, TriggerNode } from ".";
 
 /**  @returns false if we don't want the node to be invalid */
 function instantiateNode(parent: OpenTrigger, data: NodeData, open: true): OpenTriggerNode | undefined | false;
@@ -35,12 +37,8 @@ function instantiateNode(
     return new NodeCls(parent, nodeData, variableSchemas, exitGate, open);
 }
 
-function getExitGate(
-    parent: Trigger,
-    nodeData: NodeData,
-): { node: TriggerNode; schemas: OutputEntrySchema[] } | undefined | false {
-    const isGateEntry = isGateEntryNode(nodeData);
-    if (!isGateEntry) return;
+function getExitGate(parent: Trigger, nodeData: NodeData): ExitGateNodeData | undefined | false {
+    if (!isGateEntryNode(nodeData) && !isGateReturnNode(nodeData)) return;
 
     const connection = nodeData.outs.out.connection;
     const nodeId = connection?.split(":").at(0) ?? "";
@@ -49,9 +47,10 @@ function getExitGate(
     if (!node || !data) return false;
 
     const ExitCls = node.constructor as typeof TriggerNode;
-    const schemas = getOutputsSchemas(ExitCls, { data });
+    const inputs = getInputsSchemas(ExitCls, { data });
+    const outputs = getOutputsSchemas(ExitCls, { data });
 
-    return { node, schemas };
+    return { node, inputs, outputs };
 }
 
 function getVariableSchemas(parent: Trigger, nodeData: NodeData): OutputEntrySchema[] | undefined | false {
@@ -94,5 +93,11 @@ type NodeEntries = {
     outs: Collection<string, NodeBridge>;
 };
 
+type ExitGateNodeData = {
+    node: TriggerNode;
+    inputs: InputEntrySchema[];
+    outputs: OutputEntrySchema[];
+};
+
 export { instantiateNode };
-export type { OpenTriggerNode };
+export type { ExitGateNodeData, OpenTriggerNode };

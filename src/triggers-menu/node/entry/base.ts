@@ -3,8 +3,6 @@ import {
     ConnectionId,
     EntryCategory,
     EntryId,
-    isGateEntryNode,
-    isGateExitNode,
     NodeBridge,
     OpenNodeEntry,
     OpenTrigger,
@@ -231,14 +229,18 @@ abstract class BaseBlueprintEntry<
         const preciseCategory = this.preciseCategory;
         if (!this.isCustom || preciseCategory === "ins") return;
 
-        const nodes: (readonly [PreciseEntryCategory, BlueprintNode])[] = [[preciseCategory, this.node]];
+        // we want to update the exit gate if we are a return gate
+        const updater = (this.node.isReturnGate && this.node.exitGate) || this.node;
+        const nodes: (readonly [PreciseEntryCategory, BlueprintNode])[] = [[preciseCategory, updater]];
 
         // we want to disconnect all the entry-gates too
-        if (isGateExitNode(this.node)) {
+        if (this.node.isExitGate || this.node.isReturnGate) {
             const oppositeCategory = this.oppositePreciseCategory;
 
             nodes.push(
-                ...this.node.parent.getGateEntries(this.node.id).map((node) => [oppositeCategory, node] as const),
+                ...this.node.parent
+                    .getGateEntries(this.node.gateId as string, true)
+                    .map((node) => [oppositeCategory, node] as const),
             );
         }
 
@@ -255,14 +257,15 @@ abstract class BaseBlueprintEntry<
         // we remove the variable if any (and all the getters)
         this.blueprint.deleteVariable(this.id as ConnectionId, false);
 
-        this.node.refresh({
+        updater.refresh({
             forceComputeConnections: true,
             renderApplication: true,
+            selectNodes: [this.node.id],
         });
     }
 
     _contextMenuOptions(): ContextMenuEntry[] {
-        const isCustom = this.isCustom && !isGateEntryNode(this.node);
+        const isCustom = this.isCustom && !this.node.isEntryGate;
 
         return [
             {
@@ -349,7 +352,10 @@ abstract class BaseBlueprintEntry<
             }
         }
 
-        node.update({
+        // if we are a return gate, we actually update the exit gate
+        const updater = (node.isReturnGate && node.exitGate) || node;
+
+        updater.update({
             custom: {
                 [category]: {
                     [this.key]: update,
@@ -357,7 +363,7 @@ abstract class BaseBlueprintEntry<
             },
         });
 
-        node.refresh();
+        updater.refresh({ selectNodes: [node.id] });
     }
 
     #clear() {

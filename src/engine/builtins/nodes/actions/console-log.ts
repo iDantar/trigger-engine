@@ -1,11 +1,11 @@
-import { BuiltinsCustomEntry } from "engine";
+import { BuiltinsCustomEntry, CONSOLE_LOG } from "engine";
 import { MODULE } from "foundry-helpers";
 import { BaseActionNode } from ".";
 import { IconObject } from "_zod";
 
 class ConsoleLogActionNode extends BaseActionNode<"out", never, never, "input"> {
-    static get type(): "console-log" {
-        return "console-log";
+    static get type(): typeof CONSOLE_LOG {
+        return CONSOLE_LOG;
     }
 
     static get tags(): string[] {

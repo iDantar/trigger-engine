@@ -4,12 +4,15 @@ import {
     CustomInputSchema,
     CustomOutputSchema,
     CustomOutSchema,
+    ExitGateNodeData,
     getInputsSchemas,
     getNodeStates,
     getOutputsSchemas,
     getOutsSchemas,
     InputEntrySchemaSource,
     instantiateEntry,
+    isGateEntryNode,
+    isGateReturnNode,
     NodeBridge,
     NodeData,
     NodeEntry,
@@ -61,11 +64,13 @@ class TriggerNode<
         parent: Trigger,
         nodeData: NodeData,
         variableSchemas: OutputEntrySchema[] | undefined,
-        exitGate: { node: TriggerNode; schemas: OutputEntrySchema[] } | undefined,
+        exitGate: ExitGateNodeData | undefined,
         open: boolean,
     ) {
         const SelfCls = this.constructor as typeof TriggerNode;
         const isEvent = SelfCls.isEvent;
+        const isEntryGate = exitGate && isGateEntryNode(nodeData);
+        const isReturnGate = exitGate && isGateReturnNode(nodeData);
         const nodeStates = getNodeStates(SelfCls);
         const nodeState = !nodeStates
             ? null
@@ -106,12 +111,14 @@ class TriggerNode<
                 [
                     "inputs",
                     variableSchemas ?? // unique schema for variables
-                        exitGate?.schemas ?? // we use the exit output schemas
+                        (isEntryGate ? exitGate.outputs : null) ?? // we use the exit output schemas
+                        (isReturnGate ? exitGate.inputs : null) ?? // we use the exit input schemas
                         getInputsSchemas(SelfCls, { data: nodeData, state: nodeState }),
                 ],
                 [
                     "outputs",
                     variableSchemas ?? // unique schema for variables
+                        (isEntryGate ? exitGate.inputs : null) ?? // we use the exit input schemas
                         getOutputsSchemas(SelfCls, { data: nodeData, state: nodeState }),
                 ],
             ] as const,

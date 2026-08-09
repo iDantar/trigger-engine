@@ -13,6 +13,7 @@ import {
     instantiateHook,
     NodeEntry,
     OpenTrigger,
+    RETURN_GATE_TYPE,
     START_EVENT_TYPE,
     Trigger,
     TriggerApplicationCollection,
@@ -22,6 +23,7 @@ import {
     TriggerDataOutput,
     TriggerGateEntry,
     TriggerGateExit,
+    TriggerGateReturn,
     TriggerHookWrapper,
     TriggerNode,
     TriggerPath,
@@ -35,7 +37,13 @@ import utils = foundry.utils;
 
 const APPLICATION_MODES = ["setting", "free"] as const;
 const FORBIDDEN_NODE_CATEGORIES = [GATE_CATEGORY, VARIABLE_CATEGORY] as const;
-const FORBIDDEN_NODE_TYPE = [EXIT_GATE_TYPE, ENTRY_GATE_TYPE, GETTER_VARIABLE_TYPE, START_EVENT_TYPE] as const;
+const FORBIDDEN_NODE_TYPE = [
+    EXIT_GATE_TYPE,
+    ENTRY_GATE_TYPE,
+    GETTER_VARIABLE_TYPE,
+    RETURN_GATE_TYPE,
+    START_EVENT_TYPE,
+] as const;
 
 class TriggerApplication {
     static #instances: Collection<string, TriggerApplication> = new Collection();
@@ -101,6 +109,7 @@ class TriggerApplication {
         // add mandatory stuff
         this.#nodes.set(ENTRY_GATE_TYPE, TriggerGateEntry as any);
         this.#nodes.set(EXIT_GATE_TYPE, TriggerGateExit as any);
+        this.#nodes.set(RETURN_GATE_TYPE, TriggerGateReturn as any);
         this.#nodes.set(GETTER_VARIABLE_TYPE, TriggerVariableGetter as any);
 
         // events

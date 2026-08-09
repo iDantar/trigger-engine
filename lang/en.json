@@ -258,7 +258,19 @@
                     },
                     "__gate_exit__": {
                         "subtitle": "Exit Gate"
-                    }
+                    },
+                    "__gate_return__": {
+                        "customs": {
+                            "inputs": {
+                                "return": {
+                                    "label": "Entry"
+                                }
+                            }
+                        },
+                        "subtitle": "Return Gate",
+                        "tooltip": "Reaching this node will break the process of the current gate."
+                    },
+                    "return": "Add Return Gate"
                 },
                 "action": {
                     "attach-region": {
@@ -708,7 +720,7 @@
                 "loop": {
                     "after": {
                         "label": "After Loop",
-                        "tooltip": "Is executed only once after the full loop is done, even if a <strong>Break Current Loop</strong> node is used"
+                        "tooltip": "Is executed only once after the full loop is done, even if a <strong>Break Current Process</strong> node is used"
                     }
                 },
                 "numbers": {
