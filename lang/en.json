@@ -680,7 +680,7 @@
                                 "tooltip": "Comma separated list"
                             }
                         },
-                        "title": "Text List"
+                        "title": "Cached Text List"
                     },
                     "scene-targets": {
                         "title": "Scene Tokens"
