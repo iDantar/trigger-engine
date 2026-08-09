@@ -2,6 +2,8 @@ import { BuiltinsInputEntry, BuiltinsOutputEntry } from "engine";
 import { BaseValueNode } from ".";
 
 class NumberValueNode extends BaseValueNode<{ entry: number }> {
+    #cached?: number;
+
     static get type(): "number-value" {
         return "number-value";
     }
@@ -15,7 +17,7 @@ class NumberValueNode extends BaseValueNode<{ entry: number }> {
     }
 
     async _query(): Promise<number> {
-        return this.getInputValue("entry");
+        return (this.#cached ??= await this.getInputValue("entry"));
     }
 }
 

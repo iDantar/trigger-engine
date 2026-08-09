@@ -3,6 +3,8 @@ import { BaseValueNode } from ".";
 import { splitListString } from "foundry-helpers";
 
 class ListValueNode extends BaseValueNode<{ entry: string }> {
+    #cached?: string[];
+
     static get type(): "list-value" {
         return "list-value";
     }
@@ -16,8 +18,7 @@ class ListValueNode extends BaseValueNode<{ entry: string }> {
     }
 
     async _query(): Promise<string[]> {
-        const entry = await this.getInputValue("entry");
-        return splitListString(entry);
+        return (this.#cached ??= splitListString(await this.getInputValue("entry")));
     }
 }
 
