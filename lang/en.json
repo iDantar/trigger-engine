@@ -682,6 +682,9 @@
                         },
                         "title": "Cached Text List"
                     },
+                    "number-value": {
+                        "title": "Cached Number"
+                    },
                     "scene-targets": {
                         "title": "Scene Tokens"
                     },

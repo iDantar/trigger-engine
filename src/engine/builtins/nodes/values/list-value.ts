@@ -16,8 +16,8 @@ class ListValueNode extends BaseValueNode<{ entry: string }> {
     }
 
     async _query(): Promise<string[]> {
-        const entries = await this.getInputValue("entry");
-        return splitListString(entries);
+        const entry = await this.getInputValue("entry");
+        return splitListString(entry);
     }
 }
 
