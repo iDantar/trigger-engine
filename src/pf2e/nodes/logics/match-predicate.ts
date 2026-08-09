@@ -21,16 +21,17 @@ class MathPredicateLogicNode extends BaseBooleanLogicNode<Inputs> {
     }
 
     async _execute(): Promise<boolean> {
-        try {
-            const options = await this.getInputValue("options");
-            const predicate = await this.getInputValue("predicate");
-            const parsed = JSON.parse(predicate);
-            const matches = new game.pf2e.Predicate(parsed).test(options);
+        const options = await this.getInputValue("options");
+        const predicate = await this.getInputValue("predicate");
 
-            return this.executeNextIf(matches);
-        } catch {
-            return this.executeNext("false");
-        }
+        let matches = false;
+
+        try {
+            const parsed = JSON.parse(predicate);
+            matches = new game.pf2e.Predicate(parsed).test(options);
+        } catch {}
+
+        return this.executeNextIf(matches);
     }
 }
 

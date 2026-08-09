@@ -1,6 +1,6 @@
 import { BuiltinsInputEntry, BuiltinsOutputEntry } from "engine";
 import { BaseValueNode } from ".";
-import { MODULE } from "foundry-helpers";
+import { MODULE, ScenePF2e } from "foundry-helpers";
 
 const DEFAULT_CALLBACK = `/**
  * @param {{actor: Actor; token: TokenDocument}} target
@@ -39,7 +39,7 @@ class SceneTargetsValueNode extends BaseValueNode<Inputs> {
 
     async _query(): Promise<TargetDocuments[]> {
         const code = (await this.getInputValue("callback")) || "return true;";
-        const scene = this.sceneContext ?? game.scenes.active;
+        const scene = (this.sceneContext ?? game.scenes.active) as ScenePF2e;
         const targets = scene?.tokens.map((token): TargetDocuments | undefined => {
             const actor = token.actor;
             return actor ? { actor, token } : undefined;

@@ -84,6 +84,10 @@ class FilterTargetsExtractorNode extends BaseExtractorNode<Inputs, Outputs, "inp
                 this.setOutputValue("target", target);
             }
         } catch (error: any) {
+            if (error.name === "GateEntryReturn") {
+                throw error;
+            }
+
             MODULE.error(
                 `an error occured in the node "${this.type}" (${this.id}) of the trigger "${this.triggerPath}"`,
                 error,
