@@ -116,7 +116,7 @@ class ExecuteScriptActionNode extends BaseActionNode<
 
         try {
             const fn = new foundry.utils.AsyncFunction("inputs", code);
-            return fn(values);
+            return await fn(values);
         } catch (error: any) {
             MODULE.error(
                 `an error occured in the node "${this.type}" (${this.id}) of the trigger "${this.triggerPath}"`,
