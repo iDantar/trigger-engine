@@ -416,6 +416,23 @@ class TriggerNode<
      * @see {@link TriggerNode#executeNext}
      * @see {@link TriggerNode#getInputValue}
      * @see {@link TriggerNode#setOutputValue}
+     *
+     * IMPORTANT: any try/catch encapsulating a {@link TriggerNode#executeNext} must make sure to not intercept
+     * the `GateEntryReturn` error.
+     *
+     * @example
+     * _execute() {
+     *   try {
+     *     // something
+     *     return this.executeNext("out");
+     *   } catch (error) {
+     *     if (error.name === "GateEntryReturn") {
+     *       throw error;
+     *     }
+     *     // handle your own errors
+     *   }
+     * }
+     *
      */
     _execute(...args: any[]): Promise<boolean> {
         throw MODULE.Error("'_execute' method not implemented.");
