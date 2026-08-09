@@ -1,4 +1,4 @@
-import { z } from "foundry-helpers";
+import { R, z } from "foundry-helpers";
 import { zDocument, zDocumentInstance, zDocumentSource } from ".";
 
 class zCollection<
@@ -23,12 +23,26 @@ class zCollection<
     }
 
     _initialize() {
-        this.clear();
+        const sources = this.source;
+        const removed = R.difference(
+            this.map((x) => x.id),
+            sources.map((x) => x.id),
+        );
 
-        for (const source of this.source) {
+        for (const id of removed) {
+            id && this.delete(id);
+        }
+
+        for (const source of sources) {
             try {
-                const entry = new this.#document(source);
-                super.set(entry.id, entry);
+                const exist = source.id && this.get(source.id);
+
+                if (exist) {
+                    exist._initialize();
+                } else {
+                    const entry = new this.#document(source);
+                    super.set(entry.id, entry);
+                }
             } catch (error) {}
         }
     }
