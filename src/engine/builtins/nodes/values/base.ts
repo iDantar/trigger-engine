@@ -1,9 +1,9 @@
 import { TriggerNode } from "engine";
 
-abstract class BaseValueNode<TInputs extends Record<string, any> = Record<string, any>> extends TriggerNode<
-    never,
-    TInputs
-> {
+abstract class BaseValueNode<
+    TInputs extends Record<string, any> = Record<string, any>,
+    TState extends string | never = string,
+> extends TriggerNode<never, TInputs, never, never, never, TState> {
     static get category(): "value" {
         return "value";
     }

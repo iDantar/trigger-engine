@@ -1,15 +1,15 @@
-import { BridgeSchemaInput, BuiltinsInputEntry } from "engine";
-import { QueryUserArgs } from "queries";
 import {
-    AwaitDialogActionNode,
+    BridgeSchemaInput,
+    BuiltinsInputEntry,
     DescriptionInputsData,
-    DescriptionState,
-    QueryUserInputs,
     descriptionSchemas,
+    DescriptionState,
     descriptionStates,
     getDescriptionData,
     localizeKeyOrDescription,
-} from ".";
+} from "engine";
+import { QueryUserArgs } from "queries";
+import { AwaitDialogActionNode, QueryUserInputs } from ".";
 
 class AwaitConfirmActionNode extends AwaitDialogActionNode<
     DescriptionInputsData,

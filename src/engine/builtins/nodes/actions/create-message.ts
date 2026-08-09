@@ -1,15 +1,15 @@
-import { BuiltinsInputEntry } from "engine";
-import { UserPF2e, primaryPlayerOwner } from "foundry-helpers";
+import { IconObject } from "_zod";
 import {
-    BaseActionNode,
+    BuiltinsInputEntry,
     DescriptionInputs,
     DescriptionState,
     descriptionSchemas,
     descriptionStates,
     getDescriptionData,
     localizeKeyOrDescription,
-} from ".";
-import { IconObject } from "_zod";
+} from "engine";
+import { UserPF2e, primaryPlayerOwner } from "foundry-helpers";
+import { BaseActionNode } from ".";
 
 const VISIBILITY_OPTIONS = ["all", "gm", "self"] as const;
 
