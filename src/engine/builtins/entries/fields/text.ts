@@ -1,5 +1,5 @@
 import { NodeFieldSchema } from "engine";
-import { R, foundryLocalizeIfExist, htmlQuery } from "foundry-helpers";
+import { R, createHTMLElement, foundryLocalizeIfExist, htmlQuery } from "foundry-helpers";
 import { SearchSelectInputElement } from "triggers-menu";
 import { InputField } from ".";
 import { TextEntry } from "../text";
@@ -256,6 +256,19 @@ class TextField extends InputField<string, TextFieldSchema> {
 
             content?.focus();
         }
+
+        if (this.isEnrichedInput) {
+            const menu = htmlQuery(input, ".editor-menu");
+            const btn = menu?.firstElementChild?.firstElementChild as HTMLElement | undefined;
+            const span = btn?.firstElementChild as HTMLElement | undefined;
+
+            if (menu && btn && span) {
+                const icon = createHTMLElement("i", { classes: ["fa-solid", "fa-memo"] });
+                menu.dataset.tooltipDirection = "UP";
+                btn.dataset.tooltip = span.innerText;
+                span.replaceWith(icon);
+            }
+        }
     }
 
     processReturnedValue(value: string): any {
@@ -322,7 +335,7 @@ class TextField extends InputField<string, TextFieldSchema> {
 }
 
 interface TextField {
-    readonly entry: TextEntry;
+    get entry(): TextEntry;
 }
 
 type TextFieldSchemaType = (typeof NODE_INPUT_TEXT_TYPES)[number];
