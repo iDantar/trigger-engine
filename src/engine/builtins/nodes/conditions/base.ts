@@ -1,5 +1,5 @@
 import { IconObject } from "_zod";
-import { BridgeSchemaInput, TriggerNode } from "engine";
+import { BridgeSchemaInput, loopAfterSchema, TriggerNode } from "engine";
 import { PF2eOutputEntry } from "pf2e";
 
 class BaseConditionNode<
@@ -7,7 +7,8 @@ class BaseConditionNode<
     TOutputs extends { boolean: boolean } = { boolean: boolean },
     TCustomInputs extends string = string,
     TCustomOutputs extends string = string,
-> extends TriggerNode<"true" | "false" | "out", TInputs, TOutputs, TCustomInputs, TCustomOutputs, "split" | "boolean"> {
+    TOuts extends "true" | "false" | "out" | (string & {}) = "true" | "false" | "out",
+> extends TriggerNode<TOuts, TInputs, TOutputs, TCustomInputs, TCustomOutputs, "split" | "boolean"> {
     static get category(): string {
         return "condition";
     }
@@ -16,7 +17,7 @@ class BaseConditionNode<
         return ["split", "boolean"];
     }
 
-    static get defineOuts(): BridgeSchemaInput[] | null {
+    static get defineOuts(): BridgeSchemaInput[] {
         return [
             { key: "true", state: "split" },
             { key: "false", state: "split" },
@@ -39,9 +40,9 @@ class BaseConditionNode<
     async execute(out: "true" | "false", ...args: any[]): Promise<boolean> {
         if (this.state === "boolean") {
             this.setOutputValue("boolean", out === "true");
-            return this.executeNext("out", ...args);
+            return this.executeNext("out" as TOuts, ...args);
         } else {
-            return this.executeNext(out, ...args);
+            return this.executeNext(out as TOuts, ...args);
         }
     }
 
@@ -50,4 +51,20 @@ class BaseConditionNode<
     }
 }
 
-export { BaseConditionNode };
+class BaseConditionNodeWithAfter<
+    TInputs extends Record<string, any> = Record<string, any>,
+    TOutputs extends { boolean: boolean } = { boolean: boolean },
+    TCustomInputs extends string = string,
+    TCustomOutputs extends string = string,
+> extends BaseConditionNode<TInputs, TOutputs, TCustomInputs, TCustomOutputs, "true" | "false" | "out" | "after"> {
+    static get defineOuts(): BridgeSchemaInput[] {
+        return [...super.defineOuts, loopAfterSchema()];
+    }
+
+    async excuteFalse(): Promise<boolean> {
+        await this.execute("false");
+        return this.executeNext("after");
+    }
+}
+
+export { BaseConditionNode, BaseConditionNodeWithAfter };

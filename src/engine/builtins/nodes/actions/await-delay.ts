@@ -1,9 +1,10 @@
-import { BuiltinsInputEntry, BuiltinsOutputEntry } from "engine/builtins/entries";
-import { BaseActionNode } from ".";
 import { IconObject } from "_zod";
+import { BridgeSchemaInput, BuiltinsInputEntry, BuiltinsOutputEntry } from "engine";
 import { waitTimeout } from "foundry-helpers";
+import { BaseActionNode } from ".";
+import { loopAfterSchemas } from "..";
 
-class AwaitDelayActionNode extends BaseActionNode<"out", Inputs, Outputs, never, never, "delay" | "repeat"> {
+class AwaitDelayActionNode extends BaseActionNode<"out" | "after", Inputs, Outputs, never, never, "delay" | "repeat"> {
     static get type(): "await-delay" {
         return "await-delay";
     }
@@ -14,6 +15,10 @@ class AwaitDelayActionNode extends BaseActionNode<"out", Inputs, Outputs, never,
 
     static get states(): string[] {
         return ["delay", "repeat"];
+    }
+
+    static get defineOuts(): BridgeSchemaInput[] {
+        return loopAfterSchemas("repeat");
     }
 
     static get defineInputs(): BuiltinsInputEntry[] {
@@ -64,11 +69,13 @@ class AwaitDelayActionNode extends BaseActionNode<"out", Inputs, Outputs, never,
 
     async _execute(): Promise<boolean> {
         const delay = await this.getInputValue("delay");
-        const repeat = this.state === "repeat" ? await this.getInputValue("repeat") : 1;
+        const isRepeat = this.state === "repeat";
+        const repeat = isRepeat ? await this.getInputValue("repeat") : 1;
 
         if (repeat === 1) {
             await waitTimeout(delay);
-            return this.executeNext("out");
+            await this.executeNext("out");
+            return isRepeat ? this.executeNext("after") : true;
         }
 
         let index = Number(await this.getInputValue("start"));
@@ -82,11 +89,12 @@ class AwaitDelayActionNode extends BaseActionNode<"out", Inputs, Outputs, never,
 
                 if (!keepExecuting || index === limit) {
                     clearInterval(interval);
+                    resolve(true);
                 }
             }, delay);
         });
 
-        return true;
+        return this.executeNext("after");
     }
 }
 

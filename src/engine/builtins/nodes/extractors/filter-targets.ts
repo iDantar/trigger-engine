@@ -1,4 +1,11 @@
-import { BaseExtractorNode, BuiltinsCustomEntry, BuiltinsInputEntry, BuiltinsOutputEntry } from "engine";
+import {
+    BaseExtractorNode,
+    BridgeSchemaInput,
+    BuiltinsCustomEntry,
+    BuiltinsInputEntry,
+    BuiltinsOutputEntry,
+    loopAfterSchemas,
+} from "engine";
 import { MODULE } from "foundry-helpers";
 
 const DEFAULT_CALLBACK = `/**
@@ -12,13 +19,17 @@ const DEFAULT_CALLBACK = `/**
  */
 return true;`;
 
-class FilterTargetsExtractorNode extends BaseExtractorNode<Inputs, Outputs, "input", never, States> {
+class FilterTargetsExtractorNode extends BaseExtractorNode<Inputs, Outputs, "input", never, States, "out" | "after"> {
     static get type(): "filter-targets" {
         return "filter-targets";
     }
 
     static get states(): string[] {
         return ["filter", "find", "loop"];
+    }
+
+    static get defineOuts(): BridgeSchemaInput[] {
+        return loopAfterSchemas("loop");
     }
 
     static get defineInputs(): BuiltinsInputEntry[] {
@@ -75,7 +86,7 @@ class FilterTargetsExtractorNode extends BaseExtractorNode<Inputs, Outputs, "inp
                     if (!keepExecuting) break;
                 }
 
-                return true;
+                return this.executeNext("after");
             } else if (this.state === "filter") {
                 const newTargets = targets.filter((target) => callback(target, inputs));
                 this.setOutputValue("targets", newTargets);

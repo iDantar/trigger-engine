@@ -1,6 +1,6 @@
 import { IconObject } from "_zod";
-import { BaseExtractorNode, BridgeSchemaInput } from "engine";
-import { actorItems, getItemSlug, getItemSourceId, isSupressedFeat, ItemPF2e, localize } from "foundry-helpers";
+import { BaseExtractorNode, BridgeSchemaInput, loopAfterSchemas } from "engine";
+import { actorItems, getItemSlug, getItemSourceId, isSupressedFeat, ItemPF2e } from "foundry-helpers";
 import { DoubleUuidInputs, doubleUuidSchemas, getDoubleUuidValue, PF2eInputEntry, PF2eOutputEntry } from "pf2e";
 
 class FindItemExtractorNode extends BaseExtractorNode<Inputs, Outputs, never, never, State, "out" | "after"> {
@@ -17,14 +17,7 @@ class FindItemExtractorNode extends BaseExtractorNode<Inputs, Outputs, never, ne
     }
 
     static get defineOuts(): BridgeSchemaInput[] {
-        return [
-            { key: "out" },
-            {
-                key: "after",
-                label: localize.path("builtins.shared.loop.after.label"),
-                tooltip: localize.path("builtins.shared.loop.after.tooltip"),
-            },
-        ];
+        return loopAfterSchemas();
     }
 
     static get defineInputs(): PF2eInputEntry[] {

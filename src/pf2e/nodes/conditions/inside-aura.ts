@@ -1,8 +1,8 @@
-import { BaseConditionNode } from "engine";
+import { BaseConditionNodeWithAfter } from "engine";
 import { actorsRespectAlliance, localize } from "foundry-helpers";
 import { BaseAuraEvent, PF2eInputEntry, PF2eOutputEntry, getAurasInMemory } from "pf2e";
 
-class InsideAuraConditionNode extends BaseConditionNode<Inputs, Outputs> {
+class InsideAuraConditionNode extends BaseConditionNodeWithAfter<Inputs, Outputs> {
     static get type(): "inside-aura" {
         return "inside-aura";
     }
@@ -25,11 +25,11 @@ class InsideAuraConditionNode extends BaseConditionNode<Inputs, Outputs> {
     }
 
     static get defineOutputs(): PF2eOutputEntry[] {
-        return [...BaseConditionNode.defineOutputs, BaseAuraEvent.defineOutputs[1]];
+        return [...BaseConditionNodeWithAfter.defineOutputs, BaseAuraEvent.defineOutputs[1]];
     }
 
     get isLoop(): boolean {
-        return !this.getLocalValue("once");
+        return true;
     }
 
     async _execute(): Promise<boolean> {
@@ -37,7 +37,7 @@ class InsideAuraConditionNode extends BaseConditionNode<Inputs, Outputs> {
         const slug = await this.getInputValue("slug");
 
         if (!target || !slug) {
-            return this.execute("false");
+            return this.excuteFalse();
         }
 
         const once = await this.getInputValue("once");
@@ -52,7 +52,7 @@ class InsideAuraConditionNode extends BaseConditionNode<Inputs, Outputs> {
         });
 
         if (!auras.length) {
-            return this.execute("false");
+            return this.excuteFalse();
         }
 
         for (const { origin } of auras) {
@@ -62,7 +62,7 @@ class InsideAuraConditionNode extends BaseConditionNode<Inputs, Outputs> {
             if (once || !keepExecuting) break;
         }
 
-        return true;
+        return this.executeNext("after");
     }
 }
 

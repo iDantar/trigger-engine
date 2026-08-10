@@ -1,8 +1,8 @@
 import { BuiltinsInputEntry } from "engine";
-import { BaseConditionNode } from ".";
 import { PF2eOutputEntry } from "pf2e";
+import { BaseConditionNodeWithAfter } from ".";
 
-class InsideRegionConditionNode extends BaseConditionNode<InsideRegionInputs, InsideRegionOutputs> {
+class InsideRegionConditionNode extends BaseConditionNodeWithAfter<InsideRegionInputs, InsideRegionOutputs> {
     static get type() {
         return "inside-region";
     }
@@ -20,11 +20,11 @@ class InsideRegionConditionNode extends BaseConditionNode<InsideRegionInputs, In
     }
 
     static get defineOutputs(): PF2eOutputEntry[] {
-        return [...BaseConditionNode.defineOutputs, { key: "region", type: "region" }];
+        return [...BaseConditionNodeWithAfter.defineOutputs, { key: "region", type: "region" }];
     }
 
     get isLoop(): boolean {
-        return !this.getLocalValue("once");
+        return true;
     }
 
     async _execute(): Promise<boolean> {
@@ -32,14 +32,14 @@ class InsideRegionConditionNode extends BaseConditionNode<InsideRegionInputs, In
         const token = this.getTargetToken(target);
 
         if (!token?.regions.size) {
-            return this.execute("false");
+            return this.excuteFalse();
         }
 
         const regionCallback = await this._testRegionCallback();
         const regions = token.regions.filter((region) => regionCallback(region));
 
         if (!regions.size) {
-            return this.execute("false");
+            return this.excuteFalse();
         }
 
         const once = await this.getInputValue("once");
@@ -51,7 +51,7 @@ class InsideRegionConditionNode extends BaseConditionNode<InsideRegionInputs, In
             if (once || !keepExecuting) break;
         }
 
-        return true;
+        return this.executeNext("after");
     }
 
     async _testRegionCallback(): Promise<(region: RegionDocument) => boolean> {
