@@ -315,6 +315,10 @@
                                 "tooltip": "Should the <code>index</code> start at <code>1</code> instead of <code>0</code>?"
                             }
                         },
+                        "states": {
+                            "delay": "Delay",
+                            "repeat": "Repeat"
+                        },
                         "title": "Await Delay",
                         "titles": {
                             "repeat": "Repeat With Delay"
