@@ -208,6 +208,9 @@
                 "once": {
                     "title": "Execute Once"
                 },
+                "path": {
+                    "title": "Trigger Path"
+                },
                 "placeholder": {
                     "title": "Placeholder"
                 },
@@ -372,9 +375,6 @@
                             "events": {
                                 "title": "Events",
                                 "tooltip": "Comma separated list of behavior events"
-                            },
-                            "path": {
-                                "title": "Trigger Path"
                             },
                             "source": {
                                 "title": "System Source"
