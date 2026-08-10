@@ -15,7 +15,6 @@ class InsideAuraConditionNode extends BaseConditionNodeWithAfter<Inputs, Outputs
         return [
             { key: "target", type: "target" },
             ...BaseAuraEvent.defineInputs.slice(0, 2),
-            { key: "once", type: "boolean" },
             {
                 key: "self",
                 type: "boolean",
@@ -40,7 +39,6 @@ class InsideAuraConditionNode extends BaseConditionNodeWithAfter<Inputs, Outputs
             return this.excuteFalse();
         }
 
-        const once = await this.getInputValue("once");
         const affects = await this.getInputValue("affects");
         const self = await this.getInputValue("self");
         const targetUUID = target.actor.uuid;
@@ -59,7 +57,7 @@ class InsideAuraConditionNode extends BaseConditionNodeWithAfter<Inputs, Outputs
             this.setOutputValue("source", origin);
 
             const keepExecuting = await this.execute("true");
-            if (once || !keepExecuting) break;
+            if (!keepExecuting) break;
         }
 
         return this.executeNext("after");
@@ -68,7 +66,6 @@ class InsideAuraConditionNode extends BaseConditionNodeWithAfter<Inputs, Outputs
 
 type Inputs = {
     affects: "all" | "allies" | "enemies";
-    once: boolean;
     self: boolean;
     slug: string;
     target?: TargetDocuments;

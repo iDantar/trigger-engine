@@ -15,7 +15,6 @@ class InsideRegionConditionNode extends BaseConditionNodeWithAfter<InsideRegionI
         return [
             { key: "target", type: "target" },
             { key: "name", type: "text" },
-            { key: "once", type: "boolean" },
         ];
     }
 
@@ -42,13 +41,11 @@ class InsideRegionConditionNode extends BaseConditionNodeWithAfter<InsideRegionI
             return this.excuteFalse();
         }
 
-        const once = await this.getInputValue("once");
-
         for (const region of regions) {
             this.setOutputValue("region", region);
 
             const keepExecuting = await this.execute("true");
-            if (once || !keepExecuting) break;
+            if (!keepExecuting) break;
         }
 
         return this.executeNext("after");
@@ -65,7 +62,6 @@ class InsideRegionConditionNode extends BaseConditionNodeWithAfter<InsideRegionI
 
 type InsideRegionInputs = {
     name: string;
-    once: boolean;
     target?: TargetDocuments;
 };
 
