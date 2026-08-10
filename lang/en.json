@@ -596,7 +596,7 @@
                         "title": "Actors Match"
                     },
                     "break-loop": {
-                        "title": "Break Current Loop"
+                        "title": "Break Current Process"
                     },
                     "compare-numbers": {
                         "inputs": {
