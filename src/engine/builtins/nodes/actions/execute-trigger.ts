@@ -33,6 +33,11 @@ class ExecuteTriggerActionNode extends BaseActionNode<"out", Inputs, never, "inp
 
     async _execute(): Promise<boolean> {
         const path = await this.getInputValue("path");
+
+        if (path === this.triggerPath) {
+            return true;
+        }
+
         const values = await this.getCustomInputs("input");
 
         game.triggerEngine!.execute(path, values);
