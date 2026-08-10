@@ -10,6 +10,7 @@ import {
     DeleteItemActionNode,
     ExecuteAnimationActionNode,
     ExecuteScriptActionNode,
+    ExecuteTriggerActionNode,
     MoveRegionActionNode,
     UpdateItemActionNode,
     UserTargetsActionNode,
@@ -29,6 +30,7 @@ export * from "./create-message";
 export * from "./delete-item";
 export * from "./execute-animation";
 export * from "./execute-script";
+export * from "./execute-trigger";
 export * from "./move-region";
 export * from "./update-item";
 export * from "./user-targets";
@@ -45,6 +47,7 @@ export default [
     DeleteItemActionNode,
     ExecuteAnimationActionNode,
     ExecuteScriptActionNode,
+    ExecuteTriggerActionNode,
     MoveRegionActionNode,
     UpdateItemActionNode,
     UserTargetsActionNode,

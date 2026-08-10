@@ -453,6 +453,9 @@
                         },
                         "title": "Execute Script"
                     },
+                    "execute-trigger": {
+                        "title": "Execute Trigger"
+                    },
                     "move-region": {
                         "inputs": {
                             "point": {
