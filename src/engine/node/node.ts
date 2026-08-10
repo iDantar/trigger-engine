@@ -370,6 +370,9 @@ class TriggerNode<
     /**
      * Icons added to the node to indicate some special features the node contains at first glance.
      * They will be added next to the already existing ones (e.g. `custom`)
+     *
+     * Localization path:
+     * `<module-id>.<application-id>.node.<category>.<type>.specials.<name>`
      */
     get specialIcons(): { icon: IconObject; name?: string }[] | null {
         return null;

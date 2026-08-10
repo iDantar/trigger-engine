@@ -366,7 +366,7 @@ class BlueprintNode extends PIXI.Container {
     draw() {
         this.clear();
 
-        const header = this.#createHeader();
+        const header = this.#drawHeader();
         const body = this.#drawBody();
 
         const height = body.calculatedHeight + (header?.calculatedHeight ?? 0);
@@ -401,13 +401,6 @@ class BlueprintNode extends PIXI.Container {
 
             header.mask = mask;
             header.addChild(mask);
-
-            header.eventMode = "none";
-
-            background.eventMode = "static";
-            background.hitArea = new PIXI.Rectangle(0, 0, width, header.calculatedHeight);
-
-            this.blueprint.addTooltip(background, () => this.#node.generateTooltip(), "UP");
         }
 
         // body
@@ -432,7 +425,7 @@ class BlueprintNode extends PIXI.Container {
         this.#drawBorder();
 
         // special icons
-        const specials = this.#createSpecials();
+        const specials = this.#drawSpecialIcons();
 
         if (specials) {
             specials.x = width - specials.width + specials.children[0].width * 0.3;
@@ -831,22 +824,25 @@ class BlueprintNode extends PIXI.Container {
         return body;
     }
 
-    #createSpecials(): PIXI.Container<PIXI.Graphics> | undefined {
+    #drawSpecialIcons(): PIXI.Container<PIXI.Graphics> | undefined {
         const headerColor = zNodeHeaderBackground.parse(this.#node.headerColor);
 
         const specials: { icon: IconObject; name?: string }[] = R.pipe(
             this.#node.specialIcons ?? [],
             R.map(({ icon, name }) => {
                 const parsed = zIconObj.safeParse(icon)?.data;
-                if (!parsed) return;
-
-                return {
-                    icon: parsed,
-                    name,
-                };
+                return parsed && { icon: parsed, name };
             }),
             R.filter(R.isTruthy),
         );
+
+        const tooltip = this.#node.generateTooltip().trim();
+        if (tooltip) {
+            specials.unshift({
+                icon: { unicode: "\uf129", fontWeight: "900", fontMult: 1.1 },
+                name: tooltip,
+            });
+        }
 
         const builtinsSpecials: [boolean, string, IconObject | string][] = [
             [this.hasMultipleStates, "state", "\uf364"],
@@ -891,7 +887,7 @@ class BlueprintNode extends PIXI.Container {
             if (name) {
                 this.blueprint.addTooltip(
                     helper,
-                    () => this.localize("specials", name) ?? this.rootLocalize("special", name),
+                    () => this.localize("specials", name) ?? this.rootLocalize("special", name) ?? name,
                     "UP",
                 );
             }
@@ -908,7 +904,7 @@ class BlueprintNode extends PIXI.Container {
         return this.addChild(wrapper);
     }
 
-    #createHeader(): NodeheaderPart | undefined {
+    #drawHeader(): NodeheaderPart | undefined {
         const title = this.title;
         if (!R.isString(title)) return;
 
