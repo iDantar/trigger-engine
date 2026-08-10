@@ -1,3 +1,32 @@
+# 1.27.0
+
+- `Entry Gate` is no longer a dead end, it will now execute the next node connected to the newly added `Out` bridge as soon as the gate is fully executed
+- add new `Return Gate` gate node
+  - the option to create a return gate can be found in the context menu of an `Exit Gate`
+  - you can have multiple instances of the `Return Gate`
+  - you can add custom inputs to them which will be mirrored and returned to the original calling `Entry Gate` (as outputs)
+- now cache all value nodes the first time they are queried
+  - this mean that you are gonna have to use a new node if you want the module to query again
+  - rename all value nodes that didn't include the `Cached` prefix
+- add new `Cached Number` value node
+- add new `Cached Text` value node (with the 3 usual states)
+- add new `Execute Trigger` action node
+  - it is the equivalent of using the `game.trigger.execute` command
+  - it calls the `Execute Event` node in the trigger of `path`
+  - the module will prevent you to call "self" but can't prevent multi calls back to "self" so beware infinite loop
+- add an `After Loop` out bridge to the `Await Delay`, `Is Inside Aura`, `Is Inside Region`, `Filter Targets` and `Find Item Instances` nodes
+- BREAKING: remove the `Execute Once` input from the `Is Inside Aura` and `Is Inside Region` nodes
+  - to reproduce, you need to add a `Break Current Process` node at the end of the `out` chain
+- no longer display the node's tooltip when hovering its header
+  - a special icon is added instead for that purpose
+  - this has the benefit of avoiding some annoying flickering of tooltip
+  - it is also making it clear to the user that there is something of note for that node
+- `Await Delay`
+  - fix `repeat` state not fully resolving
+  - fix missing states localization
+- fix custom input `point` connections not displaying label tooltips
+- fix enriched text popup's menu going out of bounds with the v14 changes
+
 # 1.26.0
 
 - now generate a generic triggers application to be used in the current system
