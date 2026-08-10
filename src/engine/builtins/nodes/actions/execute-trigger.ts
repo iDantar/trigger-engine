@@ -7,6 +7,10 @@ class ExecuteTriggerActionNode extends BaseActionNode<"out", Inputs, never, "inp
         return "execute-trigger";
     }
 
+    get specialIcons(): { icon: IconObject; name?: string }[] | null {
+        return [{ icon: { unicode: "\uf071", fontWeight: "900" }, name: "warning" }];
+    }
+
     static get defineOuts(): null {
         return null;
     }

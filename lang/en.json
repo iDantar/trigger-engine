@@ -454,6 +454,9 @@
                         "title": "Execute Script"
                     },
                     "execute-trigger": {
+                        "specials": {
+                            "warning": "Be careful not to create infinite loops with this"
+                        },
                         "title": "Execute Trigger"
                     },
                     "move-region": {
