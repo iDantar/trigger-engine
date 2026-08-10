@@ -18,8 +18,13 @@ class ExecuteEvent extends BaseEventNode<never, never, "output"> {
         return { unicode: "\uf144" };
     }
 
-    async _execute({ converted, values }: ExecuteEventOptions): Promise<boolean> {
+    async _execute({ converted, userId, values }: ExecuteEventOptions): Promise<boolean> {
         const parsed = converted ? await this.convertValuesFomEmitable(values) : values;
+
+        const user = userId ? game.users.get(userId) : undefined;
+        if (user) {
+            this.userContext = user;
+        }
 
         this.setCustomOutputValues("output", parsed);
         return this.executeNext("out");
