@@ -62,18 +62,15 @@
             {{#if (or trigger.updated group.expanded)}}
             <div class="trigger" {{#if trigger.name}}data-name="{{trigger.name}}"{{/if}} data-id="{{trigger.id}}"
                 data-locked="{{trigger.locked}}" data-updated="{{trigger.updated}}" data-invalid="{{trigger.invalid}}"
-                data-full-id="{{trigger.fullId}}" data-path="{{trigger.path}}" data-tags="{{trigger.tags}}">
+                data-full-id="{{trigger.fullId}}" data-path="{{trigger.path}}" data-tags="{{trigger.tags}}"
+                {{#if trigger.invalid}}{{{@root.i18n.tooltip 'invalid'}}}{{/if}}>
                 <input
                     type="checkbox"
                     data-action="toggle-enabled"
                     name="enabled"
                     {{#if trigger.invalid}}disabled{{else if (@root.isEnabled trigger)}}checked{{/if}}
                 >
-                {{#if trigger.invalid}}
-                <span class="name" {{{@root.i18n.tooltip 'invalid'}}}>{{trigger.label}}</span>
-                {{else}}
                 <a class="name" data-action="select-trigger">{{trigger.label}}</a>
-                {{/if}}
                 {{#if trigger.locked}}
                 <i class="fa-solid fa-lock" {{{@root.i18n.tooltip 'locked'}}}></i>
                 {{else if trigger.updated}}

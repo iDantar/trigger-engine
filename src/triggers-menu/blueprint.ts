@@ -39,7 +39,6 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
     #gridLayer: BlueprintGridLayer;
     #hasDeletedTriggers = false;
     #hitArea: PIXI.Rectangle;
-    #invalids = new Collection<TriggerFullId, OpenTrigger>();
     #layers: BlueprintLayers;
     #modulesFolders: Record<string, string> = {};
     #mouseManager: MouseInteractionManager;
@@ -123,10 +122,6 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         return this.#layers.nodes;
     }
 
-    get invalids(): Collection<TriggerFullId, OpenTrigger> {
-        return this.#invalids;
-    }
-
     get triggers(): Collection<TriggerFullId, OpenTrigger> {
         return this.#triggers;
     }
@@ -161,7 +156,8 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
     }
 
     get locked(): boolean {
-        return !!this.trigger?.locked;
+        const trigger = this.trigger;
+        return !trigger || trigger.locked || trigger.invalid;
     }
 
     get scale(): number {
@@ -211,10 +207,7 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         // we delete triggers that were removed if not currently updating
         for (const triggerId of removedTriggers) {
             if (currentlyUpdating.has(triggerId)) continue;
-
             const fullId = `world:${triggerId}` as const;
-
-            this.#invalids.delete(fullId);
             this.#triggers.delete(fullId);
         }
 
@@ -226,9 +219,7 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
 
             const trigger = this.application.createTrigger(source, { locked: false });
 
-            if (trigger?.invalid) {
-                this.#invalids.set(trigger.fullId, trigger);
-            } else if (trigger) {
+            if (trigger) {
                 this.#triggers.set(trigger.fullId, trigger);
             }
         }
@@ -240,9 +231,7 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
 
                 const trigger = this.application.createTrigger(source, { locked: true });
 
-                if (trigger?.invalid) {
-                    this.#invalids.set(trigger.fullId, trigger);
-                } else if (trigger) {
+                if (trigger) {
                     this.#triggers.set(trigger.fullId, trigger);
                 }
             }
@@ -356,7 +345,6 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         const confirm = await confirmDialog("blueprint.trigger.delete");
         if (!confirm) return;
 
-        this.invalids.delete(fullId);
         this.triggers.delete(fullId);
 
         this.#hasDeletedTriggers = true;
@@ -366,8 +354,9 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
     async saveTriggers(): Promise<void> {
         if (!this.application.isSettingApplication) return;
 
-        const [locked, triggers] = R.partition(this.triggers.contents, (trigger) => trigger.locked);
-        const sources = R.map([...triggers, ...this.invalids], (trigger) => trigger.toObject());
+        const [invalids, valids] = R.partition(this.triggers.contents, (trigger) => trigger.invalid);
+        const [locked, triggers] = R.partition(valids, (trigger) => trigger.locked);
+        const sources = R.map([...triggers, ...invalids], (trigger) => trigger.toObject());
         const triggersIds = R.map(triggers, (trigger) => trigger.id);
         const lockedIds = R.map(locked, (trigger) => trigger.id);
 
@@ -485,10 +474,6 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
 
         const nodes = this.nodes.getVariables(id);
         this.nodes.delete(nodes, redraw);
-    }
-
-    getInvalidTrigger(fullId: TriggerFullId): OpenTrigger | null {
-        return this.invalids.get(fullId) ?? null;
     }
 
     getTrigger(fullId: TriggerFullId): OpenTrigger | null {

@@ -11,6 +11,7 @@ import {
     ExecuteAnimationActionNode,
     ExecuteScriptActionNode,
     ExecuteTriggerActionNode,
+    // InvalidActionNode,
     MoveRegionActionNode,
     UpdateItemActionNode,
     UserTargetsActionNode,
@@ -31,6 +32,7 @@ export * from "./delete-item";
 export * from "./execute-animation";
 export * from "./execute-script";
 export * from "./execute-trigger";
+// export * from "./invalid-node";
 export * from "./move-region";
 export * from "./update-item";
 export * from "./user-targets";
@@ -48,6 +50,7 @@ export default [
     ExecuteAnimationActionNode,
     ExecuteScriptActionNode,
     ExecuteTriggerActionNode,
+    // InvalidActionNode,
     MoveRegionActionNode,
     UpdateItemActionNode,
     UserTargetsActionNode,

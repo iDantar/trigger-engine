@@ -1,4 +1,4 @@
-<div class="sidebar trigger">
+<div class="sidebar trigger" data-path={{trigger.path}} data-full-id={{trigger.fullId}}>
     <div class="header" data-tooltip-direction="DOWN">
         <div class="controls">
             {{#if isFree}}
@@ -9,13 +9,13 @@
             <a data-action="back-menu" {{{@root.i18n.tooltip 'back'}}}>
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
-            {{#unless trigger.locked}}
+            {{#unless (or trigger.locked trigger.invalid)}}
             <a data-action="edit-trigger" {{{@root.i18n.tooltip 'edit'}}}>
                 <i class="fa-solid fa-pen-to-square"></i>
             </a>
             {{/unless}}
-            <a data-action="copy-path" data-path={{trigger.path}} {{{@root.i18n.tooltip 'copy.label'}}}>
-                <i class="fa-solid fa-copy"></i>
+            <a data-action="copy-path" {{{@root.i18n.tooltip 'copy.label'}}}>
+                <i class="fa-solid fa-tag"></i>
             </a>
             {{/if}}
         </div>
@@ -27,6 +27,10 @@
             {{/if}}
             {{#if trigger.locked}}
             <i class="fa-solid fa-lock"></i>
+            {{else if trigger.invalid}}
+            <a data-action="duplicate-trigger" {{{@root.i18n.tooltip 'duplicate'}}}>
+                <i class="fa-solid fa-copy"></i>
+            </a>
             {{else if (not isFree)}}
             <a data-action="refresh-application" {{{@root.i18n.tooltip 'refresh'}}}>
                 <i class="fa-solid fa-arrow-rotate-left"></i>
@@ -132,9 +136,11 @@
     </div>
 </div>
 {{#unless (and isFree (not trigger.name includeZero=true))}}
-<div class="trigger-title">
+    <div class="trigger-title{{#if trigger.invalid}} invalid{{/if}}">
     {{#if trigger.locked}}
     <i class="fa-solid fa-lock"></i>
+    {{else if trigger.invalid}}
+    <i class="fa-solid fa-notdef"></i>
     {{/if}}
     <div class="label">{{trigger.label}}</div>
     {{#if trigger.locked}}

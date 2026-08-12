@@ -98,6 +98,12 @@ abstract class zDocument<TSchema extends zDocumentSource = zDocumentSource> {
         return this;
     }
 
+    clone(): this {
+        const source = this.toObject();
+        const Cls = this.constructor as typeof _zDocument<TSchema>;
+        return new Cls(source) as this;
+    }
+
     toObject(): z.output<TSchema> {
         return foundry.utils.deepClone(this._source) as z.output<TSchema>;
     }
@@ -113,6 +119,10 @@ abstract class zDocument<TSchema extends zDocumentSource = zDocumentSource> {
 
         return source;
     }
+}
+
+declare class _zDocument<TSchema extends zDocumentSource = zDocumentSource> {
+    constructor(source: z.output<TSchema>);
 }
 
 type zDocumentInstance<TSchema extends zDocumentSource> = Prettify<z.output<TSchema> & zDocument<TSchema>>;

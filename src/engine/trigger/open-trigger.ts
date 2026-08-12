@@ -118,7 +118,23 @@ class OpenTrigger extends Trigger<OpenTriggerNode> {
     }
 
     duplicate(): TriggerDataOutput {
-        const source = this.data.toObject();
+        let source: TriggerDataOutput;
+
+        // we purge all invalid nodes and connections from data
+        if (this.invalid) {
+            const data = this.data.clone();
+
+            data.update({
+                nodes: R.filter(data._source.nodes ?? [], (node) => this.nodes.has(node.id as string)),
+            });
+
+            const clone = new OpenTrigger(this.application, data, this.locked);
+
+            clone.computeConnections();
+            source = clone.data.toObject();
+        } else {
+            source = this.data.toObject();
+        }
 
         source.id = foundry.utils.randomID();
         source.name = this.name ? game.i18n.format("DOCUMENT.CopyOf", { name: this.name }) : "";
@@ -221,6 +237,7 @@ class OpenTrigger extends Trigger<OpenTriggerNode> {
                  * update every node when connections are removed
                  */
                 const deleteData = () => {
+                    if (this.invalid) return; // we don't want to touch invalid triggers
                     for (const data of [originNode.data, originNode.data._source] as const) {
                         delete data[category]?.[originKey];
                     }
@@ -301,4 +318,4 @@ type ResolvedOpenTrigger = {
 type TriggerFullId = `${"world" | "module"}:${string}`;
 
 export { OpenTrigger };
-export type { ResolvedOpenTrigger, TriggerFullId, ResolvedTriggerNode, ResolvedNodeEntry };
+export type { ResolvedNodeEntry, ResolvedOpenTrigger, ResolvedTriggerNode, TriggerFullId };

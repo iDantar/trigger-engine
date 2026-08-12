@@ -133,8 +133,8 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
         const target = htmlClosest(el, "[data-full-id]");
         if (!target) return null;
 
-        const { fullId, invalid } = target.dataset as { fullId?: TriggerFullId; invalid?: "true" | "false" };
-        return !fullId ? null : this.blueprint[invalid === "true" ? "getInvalidTrigger" : "getTrigger"](fullId);
+        const fullId = target.dataset.fullId as TriggerFullId;
+        return fullId ? this.blueprint.getTrigger(fullId) : null;
     }
 
     async _onFirstRender() {
@@ -253,6 +253,10 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
             case "create-trigger": {
                 const folder = htmlClosest(target, "[data-folder]")?.dataset.folder;
                 return this.#editTrigger(folder);
+            }
+
+            case "duplicate-trigger": {
+                return this.#duplicateTrigger(event, target);
             }
 
             case "expand-window": {
@@ -515,7 +519,9 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
     }
 
     #copyTriggerPath(_event: PointerEvent, el: HTMLElement) {
-        const path = el.dataset.path as string;
+        const path = htmlClosest(el, "[data-path]")?.dataset.path;
+        if (!path) return;
+
         game.clipboard.copyPlainText(path);
         return localize.info("blueprint.trigger.copy.notify", { path });
     }
@@ -584,6 +590,12 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
         ];
     }
 
+    #duplicateTrigger(_event: PointerEvent, el: HTMLElement) {
+        const trigger = this.getTriggerFromElement(el);
+        const source = trigger?.duplicate();
+        return source && this.blueprint.addTrigger(source, true, true);
+    }
+
     #triggerContextMenu(): ContextMenuEntry[] {
         return [
             {
@@ -619,14 +631,9 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
                 icon: `<i class="fa-solid fa-copy"></i>`,
                 label: localize.path("blueprint.trigger.duplicate"),
                 visible: (el) => {
-                    const trigger = this.getTriggerFromElement(el);
-                    return !!trigger && !trigger.invalid;
+                    return !!this.getTriggerFromElement(el);
                 },
-                onClick: (_event, el) => {
-                    const trigger = this.getTriggerFromElement(el);
-                    const source = trigger?.duplicate();
-                    return source && this.blueprint.addTrigger(source, true, true);
-                },
+                onClick: this.#duplicateTrigger.bind(this),
             },
             {
                 icon: `<i class="fa-solid fa-trash"></i>`,
@@ -760,7 +767,7 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
     }
 
     #prepareTriggersContext(_options: BlueprintRenderOptions): TriggersContext {
-        const triggers = [...this.blueprint.triggers, ...this.blueprint.invalids];
+        const triggers = this.blueprint.triggers.contents;
         const groups = this.#prepareTriggersGroups(triggers);
 
         // we move the folder-less group at the end
@@ -944,6 +951,7 @@ type EventAction =
     | "collapse-window"
     | "copy-path"
     | "create-trigger"
+    | "duplicate-trigger"
     | "edit-trigger"
     | "expand-window"
     | "export-triggers"
