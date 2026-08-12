@@ -1,3 +1,11 @@
+# 1.28.0
+
+- you can now review `invalid` triggers
+- you can now duplicate `invalid` triggers
+  - the module will get rid of all the invalid nodes/connections before creating the duplicate
+- `Execute Trigger`:
+  - now propagate the current user context to the next trigger
+
 # 1.27.0
 
 - `Entry Gate` is no longer a dead end, it will now execute the next node connected to the newly added `Out` bridge as soon as the gate is fully executed
