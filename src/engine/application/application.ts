@@ -30,7 +30,16 @@ import {
     TriggerVariableGetter,
     VARIABLE_CATEGORY,
 } from "engine";
-import { arraysEqual, includesAny, localize, LocalizeArgs, LocalizeData, MODULE, R } from "foundry-helpers";
+import {
+    arraysEqual,
+    ImageFilePath,
+    includesAny,
+    localize,
+    LocalizeArgs,
+    LocalizeData,
+    MODULE,
+    R,
+} from "foundry-helpers";
 import { ExecuteEventQueryOptions, ExecuteTriggerQueryOptions } from "queries";
 import { BlueprintApplication } from "triggers-menu";
 import utils = foundry.utils;
@@ -51,6 +60,7 @@ class TriggerApplication {
 
     #applicationId: string;
     #applicationKey: ApplicationKey;
+    #background: Required<TriggerApplicationBackground>;
     #convertors: Collection<string, EntryConvertor>;
     #customSettings?: ApplicationCustomSetting;
     #entries: Collection<string, typeof NodeEntry>;
@@ -67,6 +77,12 @@ class TriggerApplication {
     #triggers: Record<string, TriggerData> = {};
 
     constructor(moduleId: string, applicationId: string, options: TriggerApplicationOptions = {}) {
+        this.#background = {
+            alpha: options.background?.alpha ?? 0.1,
+            ratio: options.background?.ratio ?? 0.25,
+            src: options.background?.src ?? MODULE.imagePath("trigger-engine", "webp"),
+        };
+
         this.#mode = R.isIncludedIn(options.mode, APPLICATION_MODES) ? options.mode : "setting";
         this.#moduleId = moduleId;
         this.#applicationId = applicationId;
@@ -302,6 +318,10 @@ class TriggerApplication {
 
     get moduleId(): string {
         return this.#moduleId;
+    }
+
+    get background(): Required<TriggerApplicationBackground> {
+        return this.#background;
     }
 
     get customSettingsSetter(): ApplicationCustomSetting["set"] | undefined {
@@ -875,9 +895,18 @@ type FreeApplicationResolve = (value: any) => void;
 type ApplicationParentType = "setting" | "document";
 
 type TriggerApplicationOptions = TriggerApplicationCollections & {
+    background?: TriggerApplicationBackground;
     builtins?: BuiltInOptions | true;
     mode?: TriggerApplicationMode;
     setting?: ApplicationSettingOptions;
+};
+
+type TriggerApplicationBackground = {
+    /** @default 0.1 */
+    alpha?: number;
+    src: ImageFilePath;
+    /** @default 0.25 */
+    ratio?: number;
 };
 
 type BuiltInOptions = {

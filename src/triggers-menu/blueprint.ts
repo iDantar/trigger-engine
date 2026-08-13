@@ -34,6 +34,7 @@ import {
 } from ".";
 
 class Blueprint extends PIXI.Application<HTMLCanvasElement> {
+    #background: PIXI.Sprite;
     #disabledIds = new Set<string>();
     #enabledIds = new Set<string>();
     #gridLayer: BlueprintGridLayer;
@@ -60,9 +61,12 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         this.stage.hitArea = this.#hitArea = new PIXI.Rectangle();
 
         this.stage.addChild(
+            (this.#background = PIXI.Sprite.from(parent.application.background.src)),
             (this.#gridLayer = new BlueprintGridLayer(this)),
             (this.#layers = new BlueprintLayers(this)),
         );
+
+        this.#background.alpha = parent.application.background.alpha;
 
         this.resetTriggers();
 
@@ -254,6 +258,11 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
 
         this.#hitArea.height = height;
         this.#hitArea.width = width;
+
+        const backgroundRatio = this.parent.application.background.ratio;
+        this.#background.height = height * backgroundRatio;
+        this.#background.width = width * backgroundRatio;
+        this.#background.position.set(width - this.#background.width, height - this.#background.height);
 
         this.#gridLayer.height = height;
         this.#gridLayer.width = width;
