@@ -50,6 +50,7 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
     #blueprint: Blueprint = new Blueprint(this);
     #folders: Set<string> = new Set();
     #search: string = "";
+    #sidebarWidth?: number;
     #tags: string[] = [];
     #tagsMode: MultiSelectTagsMode = "and";
 
@@ -105,6 +106,10 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
     set tags(value) {
         this.#tags = value;
         this.#filterTriggers();
+    }
+
+    get sidebarWidth(): number {
+        return (this.#sidebarWidth ??= htmlQuery(this.element, ".sidebar")?.clientWidth ?? 0);
     }
 
     async close(options: fa.ApplicationClosingOptions = {}) {
@@ -217,6 +222,8 @@ class BlueprintApplication extends apps.ApplicationV2<fa.ApplicationConfiguratio
 
         const stretched = getSetting("stretched");
         content.classList.toggle("stretched", stretched);
+
+        this.#sidebarWidth = undefined;
     }
 
     async _onClickAction(event: PointerEvent, target: HTMLElement) {

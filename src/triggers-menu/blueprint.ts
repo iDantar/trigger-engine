@@ -66,7 +66,7 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
             (this.#layers = new BlueprintLayers(this)),
         );
 
-        this.#background.alpha = parent.application.background.alpha;
+        this.#background.alpha = parent.application.background.alpha ?? 1;
 
         this.resetTriggers();
 
@@ -253,19 +253,24 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
     resizeAll(): void {
         this.resize();
 
-        const width = this.screen.width / this.stage.scale.x;
-        const height = this.screen.height / this.stage.scale.y;
+        const scale = this.scale;
+        const width = this.screen.width / scale;
+        const height = this.screen.height / scale;
 
         this.#hitArea.height = height;
         this.#hitArea.width = width;
 
-        const backgroundRatio = this.parent.application.background.ratio;
-        this.#background.height = height * backgroundRatio;
-        this.#background.width = width * backgroundRatio;
-        this.#background.position.set(width - this.#background.width, height - this.#background.height);
-
         this.#gridLayer.height = height;
         this.#gridLayer.width = width;
+
+        const bgScaleRatio = Math.min(this.parent.application.background.ratio ?? 0.25, 1);
+        const bgTexture = this.#background.texture;
+        const bgWidthRatio = (this.screen.width - this.parent.sidebarWidth) / scale / bgTexture.width;
+        const bgHeightRatio = height / bgTexture.height;
+        const bgScale = Math.min(bgWidthRatio, bgHeightRatio);
+
+        this.#background.scale.set(bgScale * bgScaleRatio);
+        this.#background.position.set(width - this.#background.width, height - this.#background.height);
     }
 
     setPosition(x: number, y: number) {

@@ -60,7 +60,7 @@ class TriggerApplication {
 
     #applicationId: string;
     #applicationKey: ApplicationKey;
-    #background: Required<TriggerApplicationBackground>;
+    #background: TriggerApplicationBackground;
     #convertors: Collection<string, EntryConvertor>;
     #customSettings?: ApplicationCustomSetting;
     #entries: Collection<string, typeof NodeEntry>;
@@ -77,10 +77,10 @@ class TriggerApplication {
     #triggers: Record<string, TriggerData> = {};
 
     constructor(moduleId: string, applicationId: string, options: TriggerApplicationOptions = {}) {
-        this.#background = {
-            alpha: options.background?.alpha ?? 0.1,
-            ratio: options.background?.ratio ?? 0.25,
-            src: options.background?.src ?? MODULE.imagePath("trigger-engine", "webp"),
+        this.#background = options.background ?? {
+            alpha: 0.04,
+            ratio: 0.33,
+            src: MODULE.imagePath("trigger-engine", "webp"),
         };
 
         this.#mode = R.isIncludedIn(options.mode, APPLICATION_MODES) ? options.mode : "setting";
@@ -320,7 +320,7 @@ class TriggerApplication {
         return this.#moduleId;
     }
 
-    get background(): Required<TriggerApplicationBackground> {
+    get background(): TriggerApplicationBackground {
         return this.#background;
     }
 
@@ -902,11 +902,13 @@ type TriggerApplicationOptions = TriggerApplicationCollections & {
 };
 
 type TriggerApplicationBackground = {
-    /** @default 0.1 */
     alpha?: number;
-    src: ImageFilePath;
-    /** @default 0.25 */
+    /**
+     * Scales the provided image to occupy a percentage of the blueprint space.
+     * It uses the greater value between width (minus the sidebar) & height to scale.
+     */
     ratio?: number;
+    src: ImageFilePath;
 };
 
 type BuiltInOptions = {
