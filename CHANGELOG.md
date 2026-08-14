@@ -1,3 +1,8 @@
+# 1.29.0
+
+- add new background image to the blueprint canvas and a way to register you own for your application
+- fix setting back input values to their default value not being registered in the triggers preparation diff check
+
 # 1.28.0
 
 - you can now review `invalid` triggers
