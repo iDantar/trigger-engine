@@ -843,10 +843,8 @@ class TriggerApplication {
 }
 
 function objectDifferentFrom(obj: object, against: object): boolean {
-    const diff1 = foundry.utils.diffObject(obj, against);
-    if (!foundry.utils.isEmpty(diff1)) return true;
-    const diff2 = foundry.utils.diffObject(against, obj);
-    return !foundry.utils.isEmpty(diff2);
+    const diff = foundry.utils.diffObject(obj, against, { bidirectional: true });
+    return !foundry.utils.isEmpty(diff);
 }
 
 function diffTriggers(data: TriggerData, source: TriggerDataInput): boolean {
