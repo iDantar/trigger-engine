@@ -38,6 +38,7 @@ import {
     LocalizeArgs,
     LocalizeData,
     MODULE,
+    purgeObject,
     R,
 } from "foundry-helpers";
 import { ExecuteEventQueryOptions, ExecuteTriggerQueryOptions } from "queries";
@@ -842,12 +843,16 @@ class TriggerApplication {
 }
 
 function objectDifferentFrom(obj: object, against: object): boolean {
-    const diff = foundry.utils.diffObject(against, obj);
-    return !foundry.utils.isEmpty(diff);
+    const diff1 = foundry.utils.diffObject(obj, against);
+    if (!foundry.utils.isEmpty(diff1)) return true;
+    const diff2 = foundry.utils.diffObject(against, obj);
+    return !foundry.utils.isEmpty(diff2);
 }
 
 function diffTriggers(data: TriggerData, source: TriggerDataInput): boolean {
-    for (const [property, dataSource] of R.entries(data._source)) {
+    const previousSource = purgeObject(data.toObject()) as TriggerDataInput;
+
+    for (const [property, dataSource] of R.entries(previousSource)) {
         if (property === "tags") {
             const newValue = source.tags ?? [];
             if (!arraysEqual(dataSource, newValue)) return true;

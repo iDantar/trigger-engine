@@ -125,7 +125,8 @@ abstract class InputField<TValue extends unknown, TSchema extends Record<string,
         if (!(input instanceof HTMLInputElement)) return;
 
         const onBlur = () => {
-            returnValue(getInputValue(input) as TValue);
+            const value = getInputValue(input) as TValue;
+            returnValue(value);
         };
 
         input.addEventListener("blur", onBlur, { once: true });
