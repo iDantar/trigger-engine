@@ -263,13 +263,13 @@ class Blueprint extends PIXI.Application<HTMLCanvasElement> {
         this.#gridLayer.height = height;
         this.#gridLayer.width = width;
 
-        const bgScaleRatio = Math.min(this.parent.application.background.ratio ?? 0.25, 1);
+        const heightRatio = Math.min(this.parent.application.background.heightRatio ?? 1, 1);
         const bgTexture = this.#background.texture;
-        const bgWidthRatio = (this.screen.width - this.parent.sidebarWidth) / scale / bgTexture.width;
-        const bgHeightRatio = height / bgTexture.height;
-        const bgScale = Math.min(bgWidthRatio, bgHeightRatio);
+        const bgWidthScale = (this.screen.width - this.parent.sidebarWidth) / scale / bgTexture.width;
+        const bgHeightScale = (height / bgTexture.height) * heightRatio;
+        const bgScale = bgTexture.width * bgHeightScale > bgTexture.width * bgWidthScale ? bgWidthScale : bgHeightScale;
 
-        this.#background.scale.set(bgScale * bgScaleRatio);
+        this.#background.scale.set(bgScale);
         this.#background.position.set(width - this.#background.width, height - this.#background.height);
     }
 

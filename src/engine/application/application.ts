@@ -79,7 +79,7 @@ class TriggerApplication {
     constructor(moduleId: string, applicationId: string, options: TriggerApplicationOptions = {}) {
         this.#background = options.background ?? {
             alpha: 0.04,
-            ratio: 0.33,
+            heightRatio: 0.25,
             src: MODULE.imagePath("trigger-engine", "webp"),
         };
 
@@ -903,11 +903,8 @@ type TriggerApplicationOptions = TriggerApplicationCollections & {
 
 type TriggerApplicationBackground = {
     alpha?: number;
-    /**
-     * Scales the provided image to occupy a percentage of the blueprint space.
-     * It uses the greater value between width (minus the sidebar) & height to scale.
-     */
-    ratio?: number;
+    /** Scales the provided image to occupy a percentage of the blueprint's height. */
+    heightRatio?: number;
     src: ImageFilePath;
 };
 
