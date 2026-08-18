@@ -24,7 +24,7 @@
 {{/if}}
 {{#if types}}
 <div class="form-group">
-    <label>{{@root.i18n 'types'}}</label>
+    <label>{{@root.i18n 'type'}}</label>
     <div class="form-fields">
         <select name="type" {{disabled (lt types.length 2)}}>
             {{selectOptions types selected=type}}

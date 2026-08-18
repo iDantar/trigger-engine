@@ -842,6 +842,7 @@
             "input": "Input",
             "label": "Label",
             "required": "The field <strong>{name}</strong> is required.",
+            "type": "Type",
             "types": "Types",
             "validation": "The field <strong>{name}</strong> must match the pattern <strong>{pattern}</strong>.",
             "yes": {
