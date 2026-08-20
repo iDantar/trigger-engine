@@ -1,9 +1,9 @@
 import { IconObject } from "_zod";
 import { BaseEventNode } from "engine";
-import { CheckType, recordToSelectOptions } from "foundry-helpers";
+import { CheckType, localize, R, recordToSelectOptions } from "foundry-helpers";
 import { CheckRollOptions, PF2eInputEntry, PF2eOutputEntry } from "pf2e";
 
-const specificChecks = {
+const SPECIFIC_CHECKS = {
     check: "PF2E.Check.Label",
     "counteract-check": "PF2E.Item.Spell.Counteract.Label",
     "flat-check": "PF2E.FlatCheck",
@@ -14,7 +14,9 @@ const specificChecks = {
 } as Record<CheckType, string | undefined>;
 
 class CheckRollEvent extends BaseEventNode<Inputs, Outputs, never, "all" | "check"> {
-    static #specificOptions: { value: string; label?: string }[] | undefined;
+    static #aliases?: string[];
+    static #specificOptions?: { value: string; label?: string }[];
+    static #titles?: Record<CheckType, string>;
 
     static get type(): "check-roll-event" {
         return "check-roll-event";
@@ -28,6 +30,19 @@ class CheckRollEvent extends BaseEventNode<Inputs, Outputs, never, "all" | "chec
         return ["all", "check"];
     }
 
+    static get titles() {
+        return (this.#titles ??= R.mapValues(SPECIFIC_CHECKS, (key, when) => {
+            const type = key
+                ? game.i18n.localize(key)
+                : localize("pf2e-trigger.node", this.category, this.type, "inputs.for.options", when);
+            return localize("pf2e-trigger.node", this.category, this.type, "titles.specific", { type });
+        }));
+    }
+
+    static get aliases(): string[] {
+        return (this.#aliases ??= R.values(R.omit(this.titles, ["check"])));
+    }
+
     static get defineInputs(): PF2eInputEntry[] {
         return [
             {
@@ -36,7 +51,7 @@ class CheckRollEvent extends BaseEventNode<Inputs, Outputs, never, "all" | "chec
                 state: "check",
                 field: {
                     type: "select",
-                    options: (this.#specificOptions ??= recordToSelectOptions(specificChecks)),
+                    options: (this.#specificOptions ??= recordToSelectOptions(SPECIFIC_CHECKS)),
                 },
             },
         ];
@@ -61,10 +76,7 @@ class CheckRollEvent extends BaseEventNode<Inputs, Outputs, never, "all" | "chec
         }
 
         const when = this.getLocalValue("for");
-        const key = specificChecks[when];
-        const type = key ? game.i18n.localize(key) : this.localize("inputs.for.options", when);
-
-        return (type && this.localize("titles.specific", { type })) || super.title;
+        return CheckRollEvent.titles[when];
     }
 
     get icon(): IconObject {
@@ -101,7 +113,7 @@ class CheckRollEvent extends BaseEventNode<Inputs, Outputs, never, "all" | "chec
 }
 
 type Inputs = {
-    for: keyof typeof specificChecks;
+    for: keyof typeof SPECIFIC_CHECKS;
 };
 
 type Outputs = Omit<CheckRollOptions, "isReroll"> & {

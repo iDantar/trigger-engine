@@ -19,6 +19,10 @@ abstract class BaseEffectActionNode<
         return ["item", "uuid"];
     }
 
+    static get aliases(): string[] {
+        return ["decrease", "increase"];
+    }
+
     static get defineInputs(): PF2eInputEntry[] {
         return [
             { key: "target", type: "target", state: "uuid" },
@@ -30,7 +34,9 @@ abstract class BaseEffectActionNode<
 
     get dynamicTitle(): string | null {
         const value = this.getLocalValue("by");
-        return this.localize(value > 0 ? "titles.increase" : value < 0 ? "titles.decrease" : "title") as string;
+        return this.localize(
+            value > 0 ? "alias.increase.title" : value < 0 ? "alias.decrease.title" : "title",
+        ) as string;
     }
 
     get title(): string | null {

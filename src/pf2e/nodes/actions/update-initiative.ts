@@ -27,8 +27,12 @@ class UpdateInitiativeActionNode extends BaseActionNode<
         return ["combat", "combatant"];
     }
 
-    static get states(): string[] | null {
+    static get states(): string[] {
         return ["value", "before", "after"];
+    }
+
+    static get aliases(): string[] {
+        return this.states.slice(1);
     }
 
     static get defineInputs(): PF2eInputEntry[] {
@@ -49,7 +53,7 @@ class UpdateInitiativeActionNode extends BaseActionNode<
     }
 
     get title(): string {
-        return this.localize(this.state === "value" ? "title" : `titles.${this.state}`) as string;
+        return this.localize(this.state === "value" ? "title" : `alias.${this.state}.title`) as string;
     }
 
     get icon(): IconObject {

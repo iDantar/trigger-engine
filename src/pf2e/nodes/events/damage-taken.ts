@@ -16,6 +16,10 @@ class DamageTakenEvent extends BaseEventNode<Inputs, Outputs, never, "select" | 
         return ["select", "everything"];
     }
 
+    static get aliases(): string[] {
+        return this.states.slice(1);
+    }
+
     static get defineInputs(): PF2eInputEntry[] {
         return [
             {
@@ -55,7 +59,7 @@ class DamageTakenEvent extends BaseEventNode<Inputs, Outputs, never, "select" | 
     }
 
     get title(): string {
-        return this.localize(this.state === "everything" ? "titles.everything" : "title") as string;
+        return this.localize(this.state === "everything" ? "alias.everything.title" : "title") as string;
     }
 
     get icon(): IconObject {

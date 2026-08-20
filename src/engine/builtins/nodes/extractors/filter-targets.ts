@@ -28,6 +28,10 @@ class FilterTargetsExtractorNode extends BaseExtractorNode<Inputs, Outputs, "inp
         return ["filter", "find", "loop"];
     }
 
+    static get aliases(): string[] {
+        return this.states.slice(1);
+    }
+
     static get defineOuts(): BridgeSchemaInput[] {
         return loopAfterSchemas("loop");
     }
@@ -63,7 +67,7 @@ class FilterTargetsExtractorNode extends BaseExtractorNode<Inputs, Outputs, "inp
     }
 
     get title(): string {
-        return this.localize(this.state === "filter" ? "title" : `titles.${this.state}`) as string;
+        return this.localize(this.state === "filter" ? "title" : `alias.${this.state}.title`) as string;
     }
 
     async _execute(): Promise<boolean> {

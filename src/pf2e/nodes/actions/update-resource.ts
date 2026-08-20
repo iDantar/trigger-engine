@@ -11,6 +11,10 @@ class UpdateResourceActionNode extends BaseActionNode<"out", Inputs> {
         return ["resource"];
     }
 
+    static get aliases(): string[] {
+        return ["decrease", "increase"];
+    }
+
     static get defineInputs(): PF2eInputEntry[] {
         return [
             { key: "target", type: "target" },
@@ -21,7 +25,9 @@ class UpdateResourceActionNode extends BaseActionNode<"out", Inputs> {
 
     get title(): string {
         const value = this.getLocalValue("by");
-        return this.localize(value > 0 ? "titles.increase" : value < 0 ? "titles.decrease" : "title") as string;
+        return this.localize(
+            value > 0 ? "alias.increase.title" : value < 0 ? "alias.decrease.title" : "title",
+        ) as string;
     }
 
     get icon(): IconObject {

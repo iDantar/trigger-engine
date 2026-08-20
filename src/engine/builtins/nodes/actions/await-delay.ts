@@ -17,6 +17,10 @@ class AwaitDelayActionNode extends BaseActionNode<"out" | "after", Inputs, Outpu
         return ["delay", "repeat"];
     }
 
+    static get aliases(): string[] {
+        return this.states.slice(1);
+    }
+
     static get defineOuts(): BridgeSchemaInput[] {
         return loopAfterSchemas("repeat");
     }
@@ -52,7 +56,7 @@ class AwaitDelayActionNode extends BaseActionNode<"out" | "after", Inputs, Outpu
     }
 
     get title(): string {
-        return this.localize(this.state === "delay" ? "title" : `titles.${this.state}`) as string;
+        return this.localize(this.state === "repeat" ? "alias.repeat.title" : "title") as string;
     }
 
     get isLoop(): boolean {

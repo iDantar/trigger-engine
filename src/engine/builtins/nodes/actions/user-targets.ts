@@ -12,8 +12,12 @@ class UserTargetsActionNode extends BaseActionNode<"out", Inputs, Outputs, never
         return ["user", "token"];
     }
 
-    static get states(): string[] | null {
+    static get states(): string[] {
         return ["all", "only"];
+    }
+
+    static get aliases(): string[] {
+        return this.states.slice(1);
     }
 
     static get defineInputs(): BuiltinsInputEntry[] {
@@ -27,8 +31,8 @@ class UserTargetsActionNode extends BaseActionNode<"out", Inputs, Outputs, never
         ];
     }
 
-    get title(): string | null {
-        return this.localize(this.state === "only" ? "titles.only" : "title") ?? null;
+    get title(): string {
+        return this.localize(this.state === "only" ? "alias.only.title" : "title") as string;
     }
 
     get icon(): IconObject {

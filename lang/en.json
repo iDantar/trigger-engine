@@ -304,6 +304,11 @@
                         "title": "Await Confirmation"
                     },
                     "await-delay": {
+                        "alias": {
+                            "repeat": {
+                                "title": "Repeat With Delay"
+                            }
+                        },
                         "inputs": {
                             "delay": {
                                 "title": "Delay (ms)",
@@ -322,10 +327,7 @@
                             "delay": "Delay",
                             "repeat": "Repeat"
                         },
-                        "title": "Await Delay",
-                        "titles": {
-                            "repeat": "Repeat With Delay"
-                        }
+                        "title": "Await Delay"
                     },
                     "await-input": {
                         "inputs": {
@@ -486,6 +488,11 @@
                         "title": "Update Item"
                     },
                     "user-targets": {
+                        "alias": {
+                            "only": {
+                                "title": "Get Only Target"
+                            }
+                        },
                         "outputs": {
                             "target": {
                                 "tooltip": "Returns a target only when a single one exist"
@@ -495,10 +502,7 @@
                             "all": "All Targets",
                             "only": "Only Target"
                         },
-                        "title": "Get User Targets",
-                        "titles": {
-                            "only": "Get Only Target"
-                        }
+                        "title": "Get User Targets"
                     }
                 },
                 "condition": {
@@ -590,11 +594,15 @@
                         "title": "Extract From Region"
                     },
                     "filter-targets": {
-                        "title": "Filter Targets",
-                        "titles": {
-                            "find": "Find Target",
-                            "loop": "Loop Over Targets"
-                        }
+                        "alias": {
+                            "find": {
+                                "title": "Find Target"
+                            },
+                            "loop": {
+                                "title": "Loop Over Targets"
+                            }
+                        },
+                        "title": "Filter Targets"
                     }
                 },
                 "logic": {
@@ -1088,23 +1096,31 @@
                         "title": "Decrease Condition"
                     },
                     "effect-badge": {
-                        "title": "Update Effect Badge",
-                        "titles": {
-                            "decrease": "Decrease Effect Badge",
-                            "increase": "Increase Effect Badge"
-                        }
+                        "alias": {
+                            "decrease": {
+                                "title": "Decrease Effect Badge"
+                            },
+                            "increase": {
+                                "title": "Increase Effect Badge"
+                            }
+                        },
+                        "title": "Update Effect Badge"
                     },
                     "effect-duration": {
+                        "alias": {
+                            "decrease": {
+                                "title": "Decrease Effect Duration"
+                            },
+                            "increase": {
+                                "title": "Increase Effect Duration"
+                            }
+                        },
                         "outputs": {
                             "delete": {
                                 "title": "Deleted"
                             }
                         },
-                        "title": "Update Effect Duration",
-                        "titles": {
-                            "decrease": "Decrease Effect Duration",
-                            "increase": "Increase Effect Duration"
-                        }
+                        "title": "Update Effect Duration"
                     },
                     "increase-condition": {
                         "title": "Increase Condition"
@@ -1162,6 +1178,14 @@
                         "title": "Toggle RollOption"
                     },
                     "update-initiative": {
+                        "alias": {
+                            "after": {
+                                "title": "Move After Combatant"
+                            },
+                            "before": {
+                                "title": "Move Before Combatant"
+                            }
+                        },
                         "inputs": {
                             "other": {
                                 "title": "Other Combatant"
@@ -1177,23 +1201,23 @@
                             "before": "Before Combatant",
                             "value": "Set Value"
                         },
-                        "title": "Update Initiative",
-                        "titles": {
-                            "after": "Move After Combatant",
-                            "before": "Move Before Combatant"
-                        }
+                        "title": "Update Initiative"
                     },
                     "update-resource": {
+                        "alias": {
+                            "decrease": {
+                                "title": "Decrease Special Resource"
+                            },
+                            "increase": {
+                                "title": "Increase Special Resource"
+                            }
+                        },
                         "inputs": {
                             "slug": {
                                 "title": "Resource Slug"
                             }
                         },
-                        "title": "Update Special Resource",
-                        "titles": {
-                            "decrease": "Decrease Resource",
-                            "increase": "Increase Resource"
-                        }
+                        "title": "Update Special Resource"
                     }
                 },
                 "condition": {
@@ -1334,6 +1358,11 @@
                         }
                     },
                     "damage-taken-event": {
+                        "alias": {
+                            "everything": {
+                                "title": "Damage Taken & Heal Received"
+                            }
+                        },
                         "inputs": {
                             "requires": {
                                 "tooltip": "Must originate from an Actor",
@@ -1359,10 +1388,7 @@
                             "everything": "Everything",
                             "select": "Select"
                         },
-                        "title": "Damage Taken",
-                        "titles": {
-                            "everything": "Damage Taken & Heal Receives"
-                        }
+                        "title": "Damage Taken"
                     },
                     "template-placed-event": {
                         "title": "Template Placed"
