@@ -833,8 +833,9 @@ class TriggerNode<
      *
      * Retrieve the local value of this node's input.
      */
-    getLocalValue<K extends keyof TInputs>(key: K): any {
-        const input = this.#inputs.get(key as string);
+    getLocalValue<K extends keyof TInputs>(key: K): TInputs[K];
+    getLocalValue(key: string) {
+        const input = this.#inputs.get(key);
         if (!input) return;
 
         const value = input?.value;
