@@ -667,7 +667,7 @@ function localizeNodeAlias(application: TriggerApplication, node: typeof Trigger
         application.localize("node", node.category, node.type, "alias", alias, "title") ??
         application.localize("alias", alias, "title") ??
         application.localize("entry", alias, "title") ??
-        alias
+        game.i18n.localize(alias)
     );
 }
 
