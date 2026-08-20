@@ -1013,6 +1013,9 @@
                 "slug": {
                     "title": "Slug"
                 },
+                "traits": {
+                    "title": "Traits"
+                },
                 "type": {
                     "title": "Type"
                 },
