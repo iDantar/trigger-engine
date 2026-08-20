@@ -3,7 +3,10 @@ import {
     degreeOfSuccessNumber,
     DegreeOfSuccessString,
     degreeOfSuccessString,
+    getItemFromUuid,
+    getItemSourceId,
     isDegreeOfSuccessValue,
+    ItemPF2e,
 } from "foundry-helpers";
 import { OutcomeEntryType } from ".";
 
@@ -55,6 +58,20 @@ const pf2eConvertors = [
         input: "text",
         convertToInput: (target: TargetDocuments): string => {
             return target.actor.signature;
+        },
+    },
+    {
+        output: "item",
+        input: "text",
+        convertToInput: (item: ItemPF2e | undefined): string => {
+            return item ? getItemSourceId(item) : "";
+        },
+    },
+    {
+        output: "text",
+        input: "item",
+        convertToInput: async (uuid: string): Promise<ItemPF2e | undefined> => {
+            return (await getItemFromUuid(uuid)) ?? undefined;
         },
     },
 ] as const satisfies EntryConvertor[];

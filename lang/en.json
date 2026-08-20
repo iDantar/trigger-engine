@@ -940,9 +940,11 @@
                 }
             },
             "convertor": {
+                "item-text": "The item's sourceId (not its uuid)",
                 "outcome-number": "A number between -1 and 3",
                 "outcome-text": "null, criticalFailure, failure, success, criticalSuccess",
-                "target-text": "The signature value"
+                "target-text": "The signature value",
+                "text-item": "Return an item from its uuid"
             },
             "custom": {
                 "rule": {
