@@ -236,10 +236,11 @@ class TriggerNode<
      * Aliases used in conjunction to the node's name in the search field.
      *
      * Localization path:
+     * `<module-id>.<application-id>.node.<category>.<type>.alias.<alias>.title`
      * `<module-id>.<application-id>.alias.<alias>.title`
      */
-    static get aliases(): string[] {
-        return [];
+    static get aliases(): string[] | null {
+        return null;
     }
 
     /**

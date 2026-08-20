@@ -570,7 +570,9 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
                     Nodes,
                     R.map((node): NodesGroup["nodes"][number] => {
                         return {
-                            aliases: node.aliases.map((alias) => localizeNodeAlias(this.application, alias)),
+                            aliases: (node.aliases ?? []).map((alias) => {
+                                return localizeNodeAlias(this.application, node, alias);
+                            }),
                             tags: node.tags,
                             title: localizeNodeProperty(this.application, node, "type"),
                             type: node.type,
@@ -660,8 +662,13 @@ function localizeNodeTag(application: TriggerApplication, tag: string): string {
     return application.localize("tag", tag, "title") ?? application.localize("entry", tag, "title") ?? tag;
 }
 
-function localizeNodeAlias(application: TriggerApplication, alias: string): string {
-    return application.localize("alias", alias, "title") ?? application.localize("entry", alias, "title") ?? alias;
+function localizeNodeAlias(application: TriggerApplication, node: typeof TriggerNode, alias: string): string {
+    return (
+        application.localize("node", node.category, node.type, "alias", alias, "title") ??
+        application.localize("alias", alias, "title") ??
+        application.localize("entry", alias, "title") ??
+        alias
+    );
 }
 
 type TriggerNodeStringProperty = keyof {
