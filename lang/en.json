@@ -741,7 +741,7 @@
                 "item-event": {
                     "type": {
                         "label": "Item Type",
-                        "tooltip": "Comma separated list of ite types"
+                        "tooltip": "Comma separated list of item types"
                     }
                 },
                 "loop": {
