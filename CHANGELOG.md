@@ -1,3 +1,16 @@
+# 1.30.0
+
+- add extra localization path to node aliases as well as always try to localize provided aliases
+- add aliases to all nodes that have alternate titles
+  - allowing you to use those alternate titles to search nodes in the nodes menu (e.g. `Loop Over Targets` & `Find Target` for the `Filter Targets` extractor node)
+- fix a bunch of localization typos/mistakes
+- `pf2e-trigger`:
+  - add `item->text` convertor, it recovers the item's sourceId (not its uuid)
+  - convert all nodes that create items (e.g. `Create Item`, `Create Trigger-Effect`, etc.) to accept an array of targets
+    - this avoids the need to loop over multiple targets to create the same item
+    - it internally uses a bundled server query making it way faster than looping (the more target the faster it is)
+  - fix `Has Trigger-Effect` always returning false when not using an explicit `identifier`
+
 # 1.29.0
 
 - add new background image to the blueprint canvas and a way to register you own for your application
