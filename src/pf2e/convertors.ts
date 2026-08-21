@@ -3,7 +3,6 @@ import {
     degreeOfSuccessNumber,
     DegreeOfSuccessString,
     degreeOfSuccessString,
-    getItemFromUuid,
     getItemSourceId,
     isDegreeOfSuccessValue,
     ItemPF2e,
@@ -65,13 +64,6 @@ const pf2eConvertors = [
         input: "text",
         convertToInput: (item: ItemPF2e | undefined): string => {
             return item ? getItemSourceId(item) : "";
-        },
-    },
-    {
-        output: "text",
-        input: "item",
-        convertToInput: async (uuid: string): Promise<ItemPF2e | undefined> => {
-            return (await getItemFromUuid(uuid)) ?? undefined;
         },
     },
 ] as const satisfies EntryConvertor[];
