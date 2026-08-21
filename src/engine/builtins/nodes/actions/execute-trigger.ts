@@ -40,7 +40,7 @@ class ExecuteTriggerActionNode extends BaseActionNode<"out", Inputs, never, "inp
 
         const values = await this.getCustomInputs("input");
 
-        game.triggerEngine!.execute(path, values);
+        game.triggerEngine!.execute(path, values, { sceneContext: this.sceneContext, userContext: this.userContext });
 
         return this.executeNext("out");
     }
