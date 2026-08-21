@@ -1,16 +1,10 @@
-import { BaseActionNode } from "engine";
-import {
-    CreateEffectActionNode,
-    CreateEffectOutputs,
-    createEmbeddedItem,
-    CreateItemActionNode,
-    CreateItemInputs,
-} from ".";
-import { getDoubleUuidValue, PF2eInputEntry, PF2eOutputEntry } from "pf2e";
 import { IconObject } from "_zod";
-import { EffectPF2e, getDocumentFromUUID, getItemSource, ItemPF2e, localize, R } from "foundry-helpers";
+import { BaseActionNode } from "engine";
+import { getDocumentFromUUID, getItemSource, ItemPF2e, localize, R } from "foundry-helpers";
+import { getDoubleUuidValue, PF2eInputEntry } from "pf2e";
+import { CreateItemActionNode, CreateItemInputs, createTargetsEmbeddedItem } from ".";
 
-class CreateEffectSourceActionNode extends BaseActionNode<"out", Inputs, Outputs> {
+class CreateEffectSourceActionNode extends BaseActionNode<"out", Inputs> {
     static get type(): "create-effect-source" {
         return "create-effect-source";
     }
@@ -33,20 +27,21 @@ class CreateEffectSourceActionNode extends BaseActionNode<"out", Inputs, Outputs
         ];
     }
 
-    static get defineOutputs(): PF2eOutputEntry[] {
-        return CreateEffectActionNode.defineOutputs;
-    }
-
     get icon(): IconObject {
         return { unicode: "\uf890" };
     }
 
     async _execute(): Promise<boolean> {
-        const actor = (await this.getInputValue("target"))?.actor;
+        const targets = await this.getInputValue("target");
+
+        if (!targets.length) {
+            return this.executeNext("out");
+        }
+
         const uuid = await getDoubleUuidValue.call(this);
         const item = await getDocumentFromUUID("Item", uuid);
 
-        if (!actor || !item?.isOfType("effect")) {
+        if (!item?.isOfType("effect")) {
             return this.executeNext("out");
         }
 
@@ -85,11 +80,7 @@ class CreateEffectSourceActionNode extends BaseActionNode<"out", Inputs, Outputs
             };
         }
 
-        // we create the effect
-        const created = await createEmbeddedItem<EffectPF2e>(actor, source);
-        if (created) {
-            this.setOutputValue("effect", created);
-        }
+        await createTargetsEmbeddedItem(targets, source);
 
         return this.executeNext("out");
     }
@@ -101,7 +92,5 @@ type Inputs = Omit<CreateItemInputs, "duplicate"> & {
     options: string[];
     origin?: TargetDocuments;
 };
-
-type Outputs = CreateEffectOutputs;
 
 export { CreateEffectSourceActionNode };

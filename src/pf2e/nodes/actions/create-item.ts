@@ -10,9 +10,9 @@ import {
     localize,
     R,
 } from "foundry-helpers";
-import { PF2eInputEntry, PF2eOutputEntry } from "pf2e";
+import { PF2eInputEntry } from "pf2e";
 import {
-    createEmbeddedItem,
+    createTargetsEmbeddedItem,
     DoubleUuidInputs,
     doubleUuidSchemas,
     getDoubleUuidValue,
@@ -20,7 +20,7 @@ import {
     getLocalItemFromSourceUuid,
 } from "..";
 
-class CreateItemActionNode extends BaseActionNode<"out", CreateItemInputs, { item?: ItemPF2e }, "choices"> {
+class CreateItemActionNode extends BaseActionNode<"out", CreateItemInputs, never, "choices"> {
     static modes = ["flag", "rollOption"] as const;
 
     static get type(): "create-item" {
@@ -33,7 +33,7 @@ class CreateItemActionNode extends BaseActionNode<"out", CreateItemInputs, { ite
 
     static get defineInputs(): PF2eInputEntry[] {
         return [
-            { key: "target", type: "target" },
+            { key: "target", type: "target", isArray: true },
             ...doubleUuidSchemas(),
             { key: "duplicate", type: "boolean", field: { default: true } },
             {
@@ -46,10 +46,6 @@ class CreateItemActionNode extends BaseActionNode<"out", CreateItemInputs, { ite
                 },
             },
         ];
-    }
-
-    static get defineOutputs(): PF2eOutputEntry[] {
-        return [{ key: "item", type: "item" }];
     }
 
     static get defineCustomInputs(): CustomInputSchema[] {
@@ -69,30 +65,17 @@ class CreateItemActionNode extends BaseActionNode<"out", CreateItemInputs, { ite
     }
 
     async _execute(): Promise<boolean> {
-        const actor = (await this.getInputValue("target"))?.actor;
         const uuid = await getDoubleUuidValue.call(this);
         const item = await getDocumentFromUUID("Item", uuid);
 
-        if (!actor || !item) {
+        if (!item) {
             return this.executeNext("out");
         }
 
-        // we check if we can add the item based on duplicate limitation
-        const duplicates = await this.getInputValue("duplicate");
-        const maxTakable = !duplicates ? 1 : item.isOfType("feat") ? item.maxTakable : Infinity;
+        const targets = await this.#getTargets(item, uuid);
 
-        if (maxTakable !== Infinity) {
-            const exist: ItemPF2e<ActorPF2e>[] = [];
-            const items = actor.itemTypes[item.type as ItemType];
-
-            for (const found of items) {
-                if (found.sourceId !== uuid) continue;
-                exist.push(found);
-            }
-
-            if (exist.length >= maxTakable) {
-                return this.executeNext("out");
-            }
+        if (!targets.length) {
+            return this.executeNext("out");
         }
 
         const source = getItemSource(item);
@@ -129,20 +112,38 @@ class CreateItemActionNode extends BaseActionNode<"out", CreateItemInputs, { ite
             }
         }
 
-        // we create the item
-        const created = await createEmbeddedItem(actor, source);
-        if (created) {
-            this.setOutputValue("item", created);
-        }
+        await createTargetsEmbeddedItem(targets, source);
 
         return this.executeNext("out");
+    }
+
+    async #getTargets(item: ItemPF2e, uuid: string) {
+        const targets = await this.getInputValue("target");
+        const duplicates = await this.getInputValue("duplicate");
+        const maxTakable = !duplicates ? 1 : item.isOfType("feat") ? item.maxTakable : Infinity;
+
+        if (maxTakable === Infinity) {
+            return targets;
+        }
+
+        return targets.filter(({ actor }) => {
+            const exist: ItemPF2e<ActorPF2e>[] = [];
+            const items = actor.itemTypes[item.type as ItemType];
+
+            for (const found of items) {
+                if (found.sourceId !== uuid) continue;
+                exist.push(found);
+            }
+
+            return exist.length < maxTakable;
+        });
     }
 }
 
 type CreateItemInputs = DoubleUuidInputs & {
     duplicate: boolean;
     level: number;
-    target?: TargetDocuments;
+    target: TargetDocuments[];
 };
 
 export { CreateItemActionNode };

@@ -1,8 +1,8 @@
 import { BaseConditionNode } from "engine";
 import { ItemPF2e, findItemWithSlug } from "foundry-helpers";
-import { PF2eInputEntry, PF2eOutputEntry, TriggerEffectInputs, getTriggerEffectData, triggerEffectSchemas } from "pf2e";
+import { PF2eInputEntry, PF2eOutputEntry, getTriggerEffectData } from "pf2e";
 
-class HasTemporaryConditionNode extends BaseConditionNode<TriggerEffectInputs, Outputs> {
+class HasTemporaryConditionNode extends BaseConditionNode<Inputs, Outputs> {
     static get type(): "has-temporary" {
         return "has-temporary";
     }
@@ -12,7 +12,10 @@ class HasTemporaryConditionNode extends BaseConditionNode<TriggerEffectInputs, O
     }
 
     static get defineInputs(): PF2eInputEntry[] {
-        return triggerEffectSchemas();
+        return [
+            { key: "target", type: "target" },
+            { key: "identifier", type: "text" },
+        ];
     }
 
     static get defineOutputs(): PF2eOutputEntry[] {
@@ -37,6 +40,11 @@ class HasTemporaryConditionNode extends BaseConditionNode<TriggerEffectInputs, O
         }
     }
 }
+
+type Inputs = {
+    identifier: string;
+    target?: TargetDocuments;
+};
 
 type Outputs = {
     boolean: boolean;

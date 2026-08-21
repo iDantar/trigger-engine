@@ -18,9 +18,9 @@ function getValuedConditions(): ConditionOptions {
     }));
 }
 
-function conditionsSchemas(): PF2eInputEntry[] {
+function conditionsSchemas(targetIsArray: boolean = false): PF2eInputEntry[] {
     return [
-        { key: "target", type: "target" },
+        { key: "target", type: "target", isArray: targetIsArray },
         {
             key: "condition",
             type: "text",
@@ -85,9 +85,9 @@ type ConditionOptions = { value: ConditionType; label: string }[];
 
 type ConditionType = Exclude<ConditionKey, `persistent-damage-${string}`>;
 
-type ConditionsInputs = {
+type ConditionsInputs<T extends TargetDocuments | undefined | TargetDocuments[] = TargetDocuments | undefined> = {
     condition: ConditionSlug;
-    target?: TargetDocuments;
+    target: T;
     value: number;
 };
 

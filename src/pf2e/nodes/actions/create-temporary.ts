@@ -1,19 +1,10 @@
 import { IconObject } from "_zod";
 import { BaseActionNode } from "engine";
 import { createCustomEffect } from "foundry-helpers";
-import { PF2eInputEntry } from "pf2e";
-import {
-    DurationState,
-    TriggerEffectInputs,
-    createEmbeddedItem,
-    durationSchemas,
-    durationStates,
-    getDurationData,
-    getTriggerEffectData,
-    triggerEffectSchemas,
-} from ".";
+import { getTriggerEffectData, PF2eInputEntry } from "pf2e";
+import { DurationState, createTargetsEmbeddedItem, durationSchemas, durationStates, getDurationData } from ".";
 
-class CreateTemporaryActionNode extends BaseActionNode<"out", TriggerEffectInputs, never, never, never, DurationState> {
+class CreateTemporaryActionNode extends BaseActionNode<"out", Inputs, never, never, never, DurationState> {
     static get type(): "create-temporary" {
         return "create-temporary";
     }
@@ -27,7 +18,11 @@ class CreateTemporaryActionNode extends BaseActionNode<"out", TriggerEffectInput
     }
 
     static get defineInputs(): PF2eInputEntry[] {
-        return [...triggerEffectSchemas(), ...durationSchemas()];
+        return [
+            { key: "target", type: "target", isArray: true },
+            { key: "identifier", type: "text" },
+            ...durationSchemas(),
+        ];
     }
 
     get icon(): IconObject {
@@ -35,9 +30,9 @@ class CreateTemporaryActionNode extends BaseActionNode<"out", TriggerEffectInput
     }
 
     async _execute(): Promise<boolean> {
-        const actor = (await this.getInputValue("target"))?.actor;
+        const targets = await this.getInputValue("target");
 
-        if (!actor) {
+        if (!targets.length) {
             return this.executeNext("out");
         }
 
@@ -53,10 +48,15 @@ class CreateTemporaryActionNode extends BaseActionNode<"out", TriggerEffectInput
             unidentified: true,
         });
 
-        await createEmbeddedItem(actor, source);
+        await createTargetsEmbeddedItem(targets, source);
 
         return this.executeNext("out");
     }
 }
+
+type Inputs = {
+    identifier: string;
+    target: TargetDocuments[];
+};
 
 export { CreateTemporaryActionNode };

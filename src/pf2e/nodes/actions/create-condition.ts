@@ -7,10 +7,9 @@ import {
     DurationState,
     EffectInputs,
     conditionsSchemas,
-    createEmbeddedItem,
+    createTargetsEmbeddedItem,
     durationStates,
     effectSchemas,
-    getConditionsData,
     getEffectData,
 } from ".";
 
@@ -28,7 +27,7 @@ class CreateConditionActionNode extends BaseActionNode<"out", Inputs, never, nev
     }
 
     static get defineInputs(): PF2eInputEntry[] {
-        return [...conditionsSchemas(), ...effectSchemas("effect")];
+        return [...conditionsSchemas(true), ...effectSchemas("effect")];
     }
 
     get icon(): IconObject {
@@ -36,22 +35,30 @@ class CreateConditionActionNode extends BaseActionNode<"out", Inputs, never, nev
     }
 
     async _execute(): Promise<boolean> {
-        const data = await getConditionsData.call(this);
+        const targets = await this.getInputValue("target");
 
-        if (data?.value) {
-            const { actor, slug, value } = data;
-            const effect = await getEffectData.call(this);
-            const source = createCustomCondition({ ...effect, counter: value, slug });
+        if (!targets.length) {
+            return this.executeNext("out");
+        }
 
-            if (source) {
-                await createEmbeddedItem(actor, source);
-            }
+        const value = Math.max(await this.getInputValue("value"), 0);
+
+        if (!value) {
+            return this.executeNext("out");
+        }
+
+        const slug = await this.getInputValue("condition");
+        const effect = await getEffectData.call(this);
+        const source = createCustomCondition({ ...effect, counter: value, slug });
+
+        if (source) {
+            await createTargetsEmbeddedItem(targets, source);
         }
 
         return this.executeNext("out");
     }
 }
 
-type Inputs = EffectInputs & ConditionsInputs;
+type Inputs = EffectInputs & ConditionsInputs<TargetDocuments[]>;
 
 export { CreateConditionActionNode };

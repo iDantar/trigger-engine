@@ -1,7 +1,7 @@
 import { IconObject } from "_zod";
 import { BaseActionNode } from "engine";
 import { DamageType, recordToSelectOptions } from "foundry-helpers";
-import { createEmbeddedItem, PF2eInputEntry } from "pf2e";
+import { createTargetsEmbeddedItem, PF2eInputEntry } from "pf2e";
 
 class CreatePersistentActionNode extends BaseActionNode<"out", Inputs> {
     static get type(): "create-persistent" {
@@ -14,7 +14,7 @@ class CreatePersistentActionNode extends BaseActionNode<"out", Inputs> {
 
     static get defineInputs(): PF2eInputEntry[] {
         return [
-            { key: "target", type: "target" },
+            { key: "target", type: "target", isArray: true },
             {
                 key: "die",
                 type: "text",
@@ -44,9 +44,9 @@ class CreatePersistentActionNode extends BaseActionNode<"out", Inputs> {
     }
 
     async _execute(): Promise<boolean> {
-        const actor = (await this.getInputValue("target"))?.actor;
+        const targets = await this.getInputValue("target");
 
-        if (!actor) {
+        if (!targets.length) {
             return this.executeNext("out");
         }
 
@@ -55,7 +55,7 @@ class CreatePersistentActionNode extends BaseActionNode<"out", Inputs> {
         const type = await this.getInputValue("type");
         const source = createPersistentDamageSource(die, type, dc);
 
-        await createEmbeddedItem(actor, source);
+        await createTargetsEmbeddedItem(targets, source);
 
         return this.executeNext("out");
     }
@@ -71,7 +71,7 @@ function createPersistentDamageSource(formula: string, damageType: DamageType, d
 type Inputs = {
     dc: number;
     die: string;
-    target?: TargetDocuments;
+    target: TargetDocuments[];
     type: DamageType;
 };
 
