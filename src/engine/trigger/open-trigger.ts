@@ -2,7 +2,9 @@ import {
     CreateNodeData,
     EntryId,
     instantiateNode,
+    isGateEntryNode,
     isGateExitNode,
+    isGateReturnNode,
     isVariableGetterNode,
     NodeData,
     OpenTriggerNode,
@@ -198,15 +200,17 @@ class OpenTrigger extends Trigger<OpenTriggerNode> {
         this.#linkedConnections.clear();
 
         for (const originNode of this.nodes) {
+            const exitGate = originNode.exitGate;
             const originConnections = R.pipe(
                 [
                     ["outs", originNode.data.outs, originNode.entries.outs],
                     [
                         "inputs",
                         originNode.data.inputs,
-                        isVariableGetterNode(originNode)
-                            ? [] // we don't want to process variables getter input
-                            : (originNode.exitGate?.entries.outputs ?? originNode.entries.inputs),
+                        (isVariableGetterNode(originNode) ? [] : null) ??
+                            (exitGate && isGateEntryNode(originNode) ? exitGate.entries.outputs : null) ??
+                            (exitGate && isGateReturnNode(originNode) ? exitGate.entries.inputs : null) ??
+                            originNode.entries.inputs,
                     ],
                 ] as const,
                 R.flatMap(([category, records, entries]) => {
