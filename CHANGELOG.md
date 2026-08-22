@@ -1,3 +1,7 @@
+# 1.31.1
+
+- fix connections to `Return Gate` inputs visually disappearing
+
 # 1.31.0
 
 - add new `Specials` node category which represent nodes that require some extra hardcoded work from the module (not unlike `Gate` & `Variable` nodes )
