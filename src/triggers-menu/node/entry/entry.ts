@@ -44,12 +44,7 @@ class BlueprintEntry extends BaseBlueprintEntry<OpenNodeEntry> {
     get hasConnector(): boolean {
         if (this.isOutput || !this.FieldCls) return true;
         if (this.node.isEvent || !this.node.inputsHaveConnector) return false;
-
-        return (
-            !this.entry.field ||
-            !("connector" in this.entry.field) ||
-            (this.entry.field as { connector: boolean }).connector !== false
-        );
+        return this.FieldCls.entryHasConnector(this.entry.field);
     }
 
     get canConnect(): boolean {

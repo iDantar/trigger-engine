@@ -50,6 +50,10 @@ class TextField extends InputField<string, TextFieldSchema> {
         };
     }
 
+    static entryHasConnector(fieldData: TextFieldSchema | undefined): boolean {
+        return fieldData?.connector !== false;
+    }
+
     get isNumberValue(): boolean {
         return false;
     }

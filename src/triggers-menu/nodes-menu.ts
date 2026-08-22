@@ -11,6 +11,7 @@ import {
     getOutputsSchemas,
     getOutsSchemas,
     GETTER_VARIABLE_TYPE,
+    InputEntrySchema,
     isGateExitNode,
     NodeData,
     NodeDataInput,
@@ -542,8 +543,10 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
 
             return entries.some((other) => {
                 if (!entryIsInput) {
-                    const OtherCls = this.application.entries.get(other.type);
+                    const otherSchema = other as InputEntrySchema;
+                    const OtherCls = this.application.entries.get(otherSchema.type);
                     if (OtherCls?.FieldClass && !node.inputsHaveConnector) return false;
+                    if (OtherCls?.FieldClass && !OtherCls.FieldClass.entryHasConnector(otherSchema.field)) return false;
                 }
 
                 return other.type === entry.type && isArray === !!other.isArray;

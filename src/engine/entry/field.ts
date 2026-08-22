@@ -27,6 +27,11 @@ class NodeField<TValue extends unknown = unknown, TFieldSchema extends Record<st
         throw MODULE.Error("'defineSchema' accessor not implemented.");
     }
 
+    /** Used to individually test if the parent entry has a connection. */
+    static entryHasConnector(fieldData: Record<string, any> | undefined): boolean {
+        return true;
+    }
+
     /** The cursor when hovering over the field. */
     get cursor(): PIXI.Cursor {
         return "default";
