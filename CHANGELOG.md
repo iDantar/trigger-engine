@@ -1,3 +1,15 @@
+# 1.31.0
+
+- add new `Specials` node category which represent nodes that require some extra hardcoded work from the module (not unlike `Gate` & `Variable` nodes )
+- add new `Persistent Collection` special node
+  - it allows you to place a persistent array of a certain type in your trigger to which you can add new entries at any moment
+  - its creation was in response to the latest update adding a way to create items in bundle making it impossible to filter targets using actual nodes
+- fix nodes menu showing invalid nodes when dragging a `text` output on the board
+  - this was due to the some select fields matching even though they don't have a connector (i.e. the `Compare ...` logic nodes)
+- `Execute Trigger`:
+  - actually propagate the current user context to the next trigger (work was done but data wasn't forwarded...)
+  - now propagate the current scene context to the next trigger
+
 # 1.30.0
 
 - add extra localization path to node aliases as well as always try to localize provided aliases
