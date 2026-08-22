@@ -1,0 +1,26 @@
+:root {
+    /* Entries */
+    --any: #878787;
+    --boolean: #ad0303;
+    --item: #696fe0;
+    --number: #07b88f;
+    --point: #edea15;
+    --outcome: #75db32;
+    --rank: #07b88f;
+    --region: #8c8c8c;
+    --target: #ff3075;
+    --text: #e0a06c;
+    --user: #1682c9;
+
+    /* Nodes */
+    --action: #2162bd;
+    --condition: #188600;
+    --default: #0c0c0c;
+    --event: #c40000;
+    --extrator: #86910d;
+    --gate: #c40000;
+    --logic: #7e18b5;
+    --special: #b07528;
+    --splitter: #853667;
+    --value: #6b5646;
+}

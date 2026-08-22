@@ -1116,7 +1116,7 @@ class BlueprintNode extends PIXI.Container {
         };
 
         if (category !== "outs") {
-            const availableTypes = this.trigger.application.entries.map((entry) => entry.type);
+            const availableTypes = this.trigger.application.availableEntryTypes;
 
             const selectedTypes = (schema as BaseCustomEntrySchema).types?.filter((type) =>
                 R.isIncludedIn(type, availableTypes),

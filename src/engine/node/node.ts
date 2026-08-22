@@ -13,6 +13,7 @@ import {
     instantiateEntry,
     isGateEntryNode,
     isGateReturnNode,
+    isSpecialTriggerNode,
     NodeBridge,
     NodeData,
     NodeEntry,
@@ -71,6 +72,7 @@ class TriggerNode<
         const isEvent = SelfCls.isEvent;
         const isEntryGate = exitGate && isGateEntryNode(nodeData);
         const isReturnGate = exitGate && isGateReturnNode(nodeData);
+        const isSpecialNode = isSpecialTriggerNode(SelfCls);
         const nodeStates = getNodeStates(SelfCls);
         const nodeState = !nodeStates
             ? null
@@ -111,6 +113,7 @@ class TriggerNode<
                 [
                     "inputs",
                     variableSchemas ?? // unique schema for variables
+                        (isSpecialNode ? SelfCls.buildInputsSchemas(nodeData) : null) ??
                         (isEntryGate ? exitGate.outputs : null) ?? // we use the exit output schemas
                         (isReturnGate ? exitGate.inputs : null) ?? // we use the exit input schemas
                         getInputsSchemas(SelfCls, { data: nodeData, state: nodeState }),
@@ -118,6 +121,7 @@ class TriggerNode<
                 [
                     "outputs",
                     variableSchemas ?? // unique schema for variables
+                        (isSpecialNode ? SelfCls.buildOutputsSchemas(nodeData) : null) ??
                         (isEntryGate ? exitGate.inputs : null) ?? // we use the exit input schemas
                         getOutputsSchemas(SelfCls, { data: nodeData, state: nodeState }),
                 ],
@@ -228,8 +232,8 @@ class TriggerNode<
      * Localization path:
      * `<module-id>.<application-id>.tag.<tag>.title`
      */
-    static get tags(): string[] {
-        return [];
+    static get tags(): string[] | null {
+        return null;
     }
 
     /**

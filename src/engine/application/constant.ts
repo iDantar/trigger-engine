@@ -8,4 +8,17 @@ export const GETTER_VARIABLE_TYPE = "__variable_getter__";
 
 export const START_EVENT_TYPE = "__start_event__";
 
+export const SPECIAL_CATEGORY = "__special__";
+export const PERSISTENT_COLLECTION_TYPE = "__persistent_collection__";
+
 export const CONSOLE_LOG = "console-log";
+
+export const RESERVED_NODE_CATEGORIES = [GATE_CATEGORY, SPECIAL_CATEGORY, VARIABLE_CATEGORY] as const;
+export const RESERVED_NODE_TYPE = [
+    EXIT_GATE_TYPE,
+    ENTRY_GATE_TYPE,
+    GETTER_VARIABLE_TYPE,
+    PERSISTENT_COLLECTION_TYPE,
+    RETURN_GATE_TYPE,
+    START_EVENT_TYPE,
+] as const;

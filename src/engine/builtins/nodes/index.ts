@@ -13,6 +13,7 @@ export * from "./events";
 export * from "./extractors";
 export * from "./gates";
 export * from "./logics";
+export * from "./specials";
 export * from "./splitters";
 export * from "./values";
 export * from "./variables";

@@ -56,6 +56,15 @@
                     "title": "Switch: {label}"
                 }
             },
+            "special": {
+                "collection": {
+                    "add": {
+                        "title": "Create Persistent Collection",
+                        "type": "Type",
+                        "yes": "Create"
+                    }
+                }
+            },
             "trigger": {
                 "back": "Back To Triggers",
                 "collapse": "Collapse Window",
@@ -274,6 +283,17 @@
                         "tooltip": "Reaching this node will break the process of the current gate."
                     },
                     "return": "Add Return Gate"
+                },
+                "__special__": {
+                    "__persistent_collection__": {
+                        "in": "Add",
+                        "outputs": {
+                            "collection": {
+                                "title": "Collection"
+                            }
+                        },
+                        "title": "Persistent Collection"
+                    }
                 },
                 "action": {
                     "attach-region": {
@@ -927,6 +947,7 @@
                 "event": "Events",
                 "gate": "Gates",
                 "node": "Nodes",
+                "special": "Specials",
                 "variable": "Variables"
             },
             "clipboard": {

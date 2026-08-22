@@ -18,6 +18,8 @@ import {
     OpenTrigger,
     OpenTriggerNode,
     PreciseEntryCategory,
+    SPECIAL_CATEGORY,
+    SPECIAL_NODES,
     TriggerApplication,
     TriggerNode,
     VARIABLE_CATEGORY,
@@ -109,7 +111,7 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
         const tags: { value: string; label: string }[] = R.pipe(
             [...allNodes, ...gateNodes],
             R.flatMap((node) => {
-                return node.tags.map((tag) => {
+                return (node.tags ?? []).map((tag) => {
                     return {
                         label: localizeNodeTag(this.application, tag),
                         value: tag,
@@ -135,6 +137,7 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
             gates: [this.#prepareGatesGroup(gateNodes)],
             groups: this.#prepareNodesGroups(nodes, "node"),
             inClipboard: this.#inClipboard.length > 0,
+            specials: [this.#prepareSpecialsGroup()],
             tags,
             variables: [variables],
         };
@@ -177,6 +180,11 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
                 return this.#selectNode({ type });
             }
 
+            case "select-special": {
+                const type = target.dataset.type as string;
+                return this.#selectSpecial(type);
+            }
+
             case "select-variable": {
                 const id = target.dataset.id as ConnectionId;
                 return this.#selectVariable(id);
@@ -188,7 +196,6 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
         this.#abortController.abort();
 
         const label = await editLabelDialog("gate");
-
         if (!label) {
             return this.close();
         }
@@ -222,6 +229,24 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
         this.#createNode(source, entry ? "outputs:entry" : undefined);
     }
 
+    async #selectSpecial(type: string) {
+        this.#abortController.abort();
+
+        const application = this.trigger?.application;
+        const Special = SPECIAL_NODES[type];
+
+        if (!application || !Special) {
+            return this.close();
+        }
+
+        const source = await Special.createNodeSource(application);
+        if (source) {
+            this.#createNode(source, undefined);
+        } else {
+            this.close();
+        }
+    }
+
     #selectGate(exitId: string) {
         const trigger = this.trigger;
         if (!trigger) return;
@@ -235,10 +260,6 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
         let otherIdSuffix: EntryIdSuffix | undefined;
 
         const newSource: NodeDataInput = {
-            // custom: {
-            //     inputs: foundry.utils.deepClone(exitNode.data.custom.outputs),
-            //     outputs: foundry.utils.deepClone(exitNode.data.custom.inputs),
-            // },
             outs: {
                 out: {
                     connection: `${exitNode.id}:ins:in`,
@@ -493,7 +514,7 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
         const entry = this.#entry;
 
         let nodes = this.application.nodes.filter(
-            (node) => !R.isIncludedIn(node.category, [GATE_CATEGORY, VARIABLE_CATEGORY]),
+            (node) => !R.isIncludedIn(node.category, [GATE_CATEGORY, SPECIAL_CATEGORY, VARIABLE_CATEGORY]),
         );
 
         if (!entry) {
@@ -550,6 +571,28 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
         return group;
     }
 
+    #prepareSpecialsGroup(): SpecialsGroup {
+        const entry = this.#entry;
+        const nodes = R.pipe(
+            SPECIAL_NODES,
+            R.values(),
+            R.filter((Special) => !entry || Special.canMatchEntry(entry)),
+            R.map((Special): PreparedNode => {
+                return {
+                    tags: Special.tags ?? [],
+                    title: localizeNodeProperty(this.application, Special as typeof TriggerNode, "type"),
+                    type: Special.type,
+                };
+            }),
+        );
+
+        return {
+            action: "select-special",
+            label: this.localize("category.special"),
+            nodes,
+        };
+    }
+
     #prepareNodesGroups(nodes: (typeof TriggerNode)[], empty: string): NodesGroup[] {
         if (!nodes.length) {
             return [{ action: "select-node", label: this.localize("category", empty), nodes: [] }];
@@ -568,14 +611,14 @@ class BlueprintNodesMenu extends foundry.applications.api.ApplicationV2 {
 
                 const nodes = R.pipe(
                     Nodes,
-                    R.map((node): NodesGroup["nodes"][number] => {
+                    R.map((Node): NodesGroup["nodes"][number] => {
                         return {
-                            aliases: (node.aliases ?? []).map((alias) => {
-                                return localizeNodeAlias(this.application, node, alias);
+                            aliases: (Node.aliases ?? []).map((alias) => {
+                                return localizeNodeAlias(this.application, Node, alias);
                             }),
-                            tags: node.tags,
-                            title: localizeNodeProperty(this.application, node, "type"),
-                            type: node.type,
+                            tags: Node.tags ?? [],
+                            title: localizeNodeProperty(this.application, Node, "type"),
+                            type: Node.type,
                         };
                     }),
                     R.sortBy(R.prop("title")),
@@ -675,13 +718,14 @@ type TriggerNodeStringProperty = keyof {
     [P in keyof typeof TriggerNode as (typeof TriggerNode)[P] extends string ? P : never]: (typeof TriggerNode)[P];
 };
 
-type EventAction = "create-gate" | "paste-nodes" | "select-gate" | "select-node" | "select-variable";
+type EventAction = "create-gate" | "paste-nodes" | "select-gate" | "select-node" | "select-special" | "select-variable";
 
 type NodesMenuContext = fa.ApplicationRenderContext & {
     events: NodesGroup[];
     gates: [GatesGroup];
     groups: NodesGroup[];
     inClipboard: boolean;
+    specials: [SpecialsGroup];
     tags: { value: string; label: string }[];
     variables: VariablesGroup[];
 };
@@ -690,6 +734,10 @@ type NodesGroup = {
     action: string;
     label: string;
     nodes: (PreparedNode & { aliases: string[] })[];
+};
+
+type SpecialsGroup = Omit<NodesGroup, "nodes"> & {
+    nodes: PreparedNode[];
 };
 
 type VariablesGroup = Omit<NodesGroup, "nodes"> & {

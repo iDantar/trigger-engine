@@ -3,18 +3,14 @@ import {
     BuiltInApplication,
     createCollection,
     createConvertorKey,
-    ENTRY_GATE_TYPE,
     EntryConvertor,
-    EXIT_GATE_TYPE,
-    GATE_CATEGORY,
     getBuiltins,
-    GETTER_VARIABLE_TYPE,
     getTriggerPathData,
     instantiateHook,
     NodeEntry,
     OpenTrigger,
-    RETURN_GATE_TYPE,
-    START_EVENT_TYPE,
+    RESERVED_NODE_CATEGORIES,
+    RESERVED_NODE_TYPE,
     Trigger,
     TriggerApplicationCollection,
     TriggerApplicationCollections,
@@ -28,7 +24,6 @@ import {
     TriggerNode,
     TriggerPath,
     TriggerVariableGetter,
-    VARIABLE_CATEGORY,
 } from "engine";
 import {
     arraysEqual,
@@ -43,17 +38,10 @@ import {
 } from "foundry-helpers";
 import { ExecuteEventQueryOptions, ExecuteTriggerQueryOptions } from "queries";
 import { BlueprintApplication } from "triggers-menu";
+import { SPECIAL_NODES } from "engine/builtins/nodes/specials";
 import utils = foundry.utils;
 
 const APPLICATION_MODES = ["setting", "free"] as const;
-const FORBIDDEN_NODE_CATEGORIES = [GATE_CATEGORY, VARIABLE_CATEGORY] as const;
-const FORBIDDEN_NODE_TYPE = [
-    EXIT_GATE_TYPE,
-    ENTRY_GATE_TYPE,
-    GETTER_VARIABLE_TYPE,
-    RETURN_GATE_TYPE,
-    START_EVENT_TYPE,
-] as const;
 
 class TriggerApplication {
     static #instances: Collection<string, TriggerApplication> = new Collection();
@@ -92,8 +80,8 @@ class TriggerApplication {
         if (R.isArray(options.nodes)) {
             options.nodes = options.nodes.filter((node) => {
                 return (
-                    !R.isIncludedIn(node.category, FORBIDDEN_NODE_CATEGORIES) &&
-                    !R.isIncludedIn(node.type, FORBIDDEN_NODE_TYPE)
+                    !R.isIncludedIn(node.category, RESERVED_NODE_CATEGORIES) &&
+                    !R.isIncludedIn(node.type, RESERVED_NODE_TYPE)
                 );
             });
         }
@@ -124,10 +112,16 @@ class TriggerApplication {
         );
 
         // add mandatory stuff
-        this.#nodes.set(ENTRY_GATE_TYPE, TriggerGateEntry as any);
-        this.#nodes.set(EXIT_GATE_TYPE, TriggerGateExit as any);
-        this.#nodes.set(RETURN_GATE_TYPE, TriggerGateReturn as any);
-        this.#nodes.set(GETTER_VARIABLE_TYPE, TriggerVariableGetter as any);
+        const MandatoryNodes = [
+            TriggerGateEntry,
+            TriggerGateExit,
+            TriggerGateReturn,
+            TriggerVariableGetter,
+            ...R.values(SPECIAL_NODES),
+        ];
+        for (const Mandatory of MandatoryNodes) {
+            this.#nodes.set(Mandatory.type, Mandatory as typeof TriggerNode);
+        }
 
         // events
         this.#events = new Collection(
@@ -343,6 +337,10 @@ class TriggerApplication {
 
     get entries(): Collection<string, typeof NodeEntry> {
         return this.#entries;
+    }
+
+    get availableEntryTypes(): string[] {
+        return this.entries.map((entry) => entry.type);
     }
 
     get nodes(): Collection<string, typeof TriggerNode> {
