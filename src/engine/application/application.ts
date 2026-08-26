@@ -846,27 +846,27 @@ function objectDifferentFrom(obj: object, against: object): boolean {
 }
 
 function diffTriggers(data: TriggerData, source: TriggerDataInput): boolean {
-    const previousSource = purgeObject(data.toObject()) as TriggerDataInput;
+    for (const [property, previousData] of R.entries(data.toObject())) {
+        const previousValue = purgeObject(previousData);
 
-    for (const [property, dataSource] of R.entries(previousSource)) {
         if (property === "tags") {
             const newValue = source.tags ?? [];
-            if (!arraysEqual(dataSource, newValue)) return true;
+            if (!arraysEqual(previousValue, newValue)) return true;
         } else if (property === "nodes") {
             const newValue = source.nodes ?? [];
-            if (objectDifferentFrom(newValue, dataSource)) return true;
+            if (objectDifferentFrom(newValue, previousValue)) return true;
         } else if (property === "variables") {
             const newValue = source.variables ?? {};
-            if (objectDifferentFrom(newValue, dataSource)) return true;
+            if (objectDifferentFrom(newValue, previousValue)) return true;
         } else {
             const rawNewValue = source[property];
-            const newValue = R.isString(dataSource)
+            const newValue = R.isString(previousValue)
                 ? (rawNewValue ?? "")
-                : R.isNumber(dataSource)
+                : R.isNumber(previousValue)
                   ? (rawNewValue ?? 0)
                   : (rawNewValue ?? {});
 
-            if (dataSource !== newValue) return true;
+            if (previousValue !== newValue) return true;
         }
     }
 
