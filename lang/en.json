@@ -1410,6 +1410,14 @@
                         },
                         "title": "Damage Taken"
                     },
+                    "spell-cast-event": {
+                        "outputs": {
+                            "rank": {
+                                "title": "Cast Rank"
+                            }
+                        },
+                        "title": "Spell Cast"
+                    },
                     "template-placed-event": {
                         "title": "Template Placed"
                     },
@@ -1592,6 +1600,9 @@
                 },
                 "save": {
                     "title": "Save"
+                },
+                "spell": {
+                    "title": "Spell"
                 },
                 "turn": {
                     "title": "Turn"

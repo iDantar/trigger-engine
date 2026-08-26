@@ -11,21 +11,29 @@ import {
     ItemPF2e,
     R,
     SYSTEM,
+    SpellPF2e,
     TokenDocumentPF2e,
     createToggleHook,
     isActionMessage,
+    isSpellMessage,
     isValidTargetDocuments,
 } from "foundry-helpers";
 
 class CreateMessageHook extends TriggerHook<
-    ActionChatOptions | AttackRollOptions | DamageTakenOptions | CheckRollOptions
+    ActionChatOptions | AttackRollOptions | DamageTakenOptions | CheckRollOptions | SpellCastOptions
 > {
     static damageTakenTypes = ["all", "damage", "heal", "persistent", "negated"] as const;
 
     #hook = createToggleHook("createChatMessage", this.#onCreateMessage.bind(this));
 
-    get events(): ["action-chat-event", "attack-roll-event", "damage-taken-event", "check-roll-event"] {
-        return ["action-chat-event", "attack-roll-event", "damage-taken-event", "check-roll-event"];
+    get events(): [
+        "action-chat-event",
+        "attack-roll-event",
+        "damage-taken-event",
+        "check-roll-event",
+        "spell-cast-event",
+    ] {
+        return ["action-chat-event", "attack-roll-event", "damage-taken-event", "check-roll-event", "spell-cast-event"];
     }
 
     _enable() {
@@ -42,26 +50,31 @@ class CreateMessageHook extends TriggerHook<
         const { appliedDamage, origin, context } = message.flags[SYSTEM.id];
 
         if (origin && isActionMessage(message)) {
-            const item = fromUuidSync<AbilityItemPF2e | FeatPF2e>(origin.uuid, { strict: false });
-            if (!item) return;
+            const data = await getMessageData<AbilityItemPF2e | FeatPF2e>(message, origin);
+            if (!data) return;
 
-            const originActor = origin?.actor ? await fromUuid<ActorPF2e>(origin.actor) : null;
-
-            const targets = R.pipe(
-                game.toolbelt?.api.targetHelper.getMessageTargets(message) ?? [],
-                R.map((token) => {
-                    const actor = token.actor;
-                    return actor ? { actor, token } : null;
-                }),
-                R.filter(R.isTruthy),
-            );
-
+            const { item, originActor, targets } = data;
             return this.executeEvent("action-chat-event", {
                 item,
                 options: origin.rollOptions ?? [],
                 origin: originActor ? { actor: originActor } : undefined,
                 targets,
             } satisfies ActionChatOptions);
+        }
+
+        if (origin && isSpellMessage(message, true)) {
+            const data = await getMessageData<SpellPF2e>(message, origin);
+            if (!data) return;
+
+            const { item, originActor, targets } = data;
+            return this.executeEvent("spell-cast-event", {
+                castRank: origin.castRank,
+                item,
+                options: origin.rollOptions ?? [],
+                origin: originActor ? { actor: originActor } : undefined,
+                targets,
+                variant: origin.variant,
+            } satisfies SpellCastOptions);
         }
 
         if (!context) return;
@@ -112,6 +125,26 @@ class CreateMessageHook extends TriggerHook<
     }
 }
 
+async function getMessageData<T extends ItemPF2e>(
+    message: ChatMessagePF2e,
+    origin: ItemOriginFlag,
+): Promise<{ item: T; originActor: ActorPF2e | null; targets: TargetDocuments[] } | undefined> {
+    const item = await fromUuid<T>(origin.uuid);
+    if (!item) return;
+
+    const originActor = origin?.actor ? await fromUuid<ActorPF2e>(origin.actor) : null;
+    const targets = R.pipe(
+        game.toolbelt?.api.targetHelper.getMessageTargets(message) ?? [],
+        R.map((token) => {
+            const actor = token.actor;
+            return actor ? { actor, token } : null;
+        }),
+        R.filter(R.isTruthy),
+    );
+
+    return { item, originActor, targets };
+}
+
 async function checkRollData(message: ChatMessagePF2e, reroll?: boolean): Promise<CheckRollOptions | undefined> {
     const { context, origin } = message.flags[SYSTEM.id] as { context: CheckContextChatFlag; origin?: ItemOriginFlag };
     const roller = { actor: message.actor, token: message.token };
@@ -155,8 +188,15 @@ type BaseOptions = {
 };
 
 type ActionChatOptions = Omit<BaseOptions, "item" | "target"> & {
-    item: ItemPF2e;
+    item: AbilityItemPF2e | FeatPF2e;
     targets: TargetDocuments[];
+};
+
+type SpellCastOptions = Omit<BaseOptions, "item" | "target"> & {
+    castRank: number | undefined;
+    item: SpellPF2e;
+    targets: TargetDocuments[];
+    variant: { overlays: string[] } | null | undefined;
 };
 
 type AttackRollOptions = WithRequired<BaseOptions, "origin"> & {
@@ -179,4 +219,11 @@ type CheckRollOptions = WithPartial<BaseOptions, "target"> & {
 type DamageTakenType = (typeof CreateMessageHook.damageTakenTypes)[number];
 
 export { CreateMessageHook, checkRollData };
-export type { ActionChatOptions, AttackRollOptions, CheckRollOptions, DamageTakenOptions, DamageTakenType };
+export type {
+    ActionChatOptions,
+    AttackRollOptions,
+    CheckRollOptions,
+    DamageTakenOptions,
+    DamageTakenType,
+    SpellCastOptions,
+};

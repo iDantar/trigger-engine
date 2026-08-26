@@ -6,6 +6,7 @@ import {
     CheckRollEvent,
     DamageTakenEvent,
     PF2eRegionEvent,
+    SpellCastEvent,
     TemplatePlacedEvent,
     TurnEndEvent,
     TurnStartEvent,
@@ -19,6 +20,7 @@ export * from "./aura-leave";
 export * from "./check-roll";
 export * from "./damage-taken";
 export * from "./region-event";
+export * from "./spell-cast";
 export * from "./template-placed";
 export * from "./turn-end";
 export * from "./turn-start";
@@ -31,6 +33,7 @@ export default [
     CheckRollEvent,
     DamageTakenEvent,
     PF2eRegionEvent,
+    SpellCastEvent,
     TemplatePlacedEvent,
     TurnEndEvent,
     TurnStartEvent,
