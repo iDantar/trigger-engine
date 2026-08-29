@@ -155,6 +155,7 @@ async function checkRollData(message: ChatMessagePF2e, reroll?: boolean): Promis
     const originToken = context.origin?.token ? await fromUuid<TokenDocumentPF2e>(context.origin.token) : null;
 
     return {
+        dc: context.dc?.value,
         isReroll: reroll ?? context.isReroll,
         item: message.item,
         options: context.options ?? [],
@@ -210,6 +211,7 @@ type DamageTakenOptions = BaseOptions & {
 };
 
 type CheckRollOptions = WithPartial<BaseOptions, "target"> & {
+    dc: number | undefined;
     isReroll: boolean;
     outcome: DegreeOfSuccessString | null;
     roller: TargetDocuments;

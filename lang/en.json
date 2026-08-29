@@ -1361,6 +1361,9 @@
                             }
                         },
                         "outputs": {
+                            "dc": {
+                                "title": "DC"
+                            },
                             "roller": {
                                 "title": "Roller"
                             },

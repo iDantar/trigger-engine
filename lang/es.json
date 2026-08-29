@@ -902,6 +902,9 @@
               }
             },
             "outputs": {
+              "dc": {
+                "title": "CD"
+              },
               "roller": {
               },
               "type": {
